@@ -1,6 +1,0 @@
-syntax: glob
-**/AdamMil.snk
-**/bin/
-**/obj/
-*.csproj.user
-*.suo

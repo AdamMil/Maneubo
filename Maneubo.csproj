@@ -83,9 +83,7 @@
     <Compile Include="MainForm.Designer.cs">
       <DependentUpon>MainForm.cs</DependentUpon>
     </Compile>
-    <Compile Include="ManeuveringBoard.cs">
-      <SubType>Component</SubType>
-    </Compile>
+    <Compile Include="ManeuveringBoard.cs" />
     <Compile Include="MapProjectionForm.cs">
       <SubType>Form</SubType>
     </Compile>
@@ -93,9 +91,7 @@
       <DependentUpon>MapProjectionForm.cs</DependentUpon>
     </Compile>
     <Compile Include="MapProjections.cs" />
-    <Compile Include="MouseCanvas.cs">
-      <SubType>Component</SubType>
-    </Compile>
+    <Compile Include="MouseCanvas.cs" />
     <Compile Include="PositionalDataForm.cs">
       <SubType>Form</SubType>
     </Compile>
@@ -183,26 +179,26 @@
     </EmbeddedResource>
   </ItemGroup>
   <ItemGroup>
-    <Content Include="Resources\about.png" />
-    <Content Include="Resources\icon_air.png" />
+    <None Include="Resources\about.png" />
+    <None Include="Resources\icon_air.png" />
     <None Include="Resources\icon_boat.png" />
-    <Content Include="Resources\icon_bgimage.png" />
-    <Content Include="Resources\icon_helo.png" />
-    <Content Include="Resources\icon_intercept.png" />
-    <Content Include="Resources\icon_land.png" />
-    <Content Include="Resources\icon_map.png" />
-    <Content Include="Resources\icon_obsBearing.png" />
-    <Content Include="Resources\icon_obsPoint.png" />
-    <Content Include="Resources\icon_subsurface.png" />
-    <Content Include="Resources\icon_surface.png" />
-    <Content Include="Resources\icon_tma.png" />
-    <Content Include="Resources\icon_unknown.png" />
-    <Content Include="Resources\icon_waypoint.png" />
-    <Content Include="Resources\icon_weapon.png" />
+    <None Include="Resources\icon_bgimage.png" />
+    <None Include="Resources\icon_helo.png" />
+    <None Include="Resources\icon_intercept.png" />
+    <None Include="Resources\icon_land.png" />
+    <None Include="Resources\icon_map.png" />
+    <None Include="Resources\icon_obsBearing.png" />
+    <None Include="Resources\icon_obsPoint.png" />
+    <None Include="Resources\icon_subsurface.png" />
+    <None Include="Resources\icon_surface.png" />
+    <None Include="Resources\icon_tma.png" />
+    <None Include="Resources\icon_unknown.png" />
+    <None Include="Resources\icon_waypoint.png" />
+    <None Include="Resources\icon_weapon.png" />
     <None Include="Resources\icon_pointer.png" />
     <None Include="Resources\icon_line.png" />
     <None Include="Resources\icon_circle.png" />
-    <Content Include="Resources\icon_os.png" />
+    <None Include="Resources\icon_os.png" />
     <None Include="Resources\moboard.xsd">
       <SubType>Designer</SubType>
     </None>

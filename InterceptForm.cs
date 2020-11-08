@@ -1,4 +1,23 @@
-﻿using System;
+﻿/*
+Maneubo is an application that provides a virtual maneuvering board and target
+motion analysis.
+
+http://www.adammil.net/Maneubo
+Copyright (C) 2011-2020 Adam Milazzo
+
+This program is free software; you can redistribute it and/or
+modify it under the terms of the GNU General Public License
+as published by the Free Software Foundation; either version 2
+of the License, or (at your option) any later version.
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+You should have received a copy of the GNU General Public License
+along with this program; if not, write to the Free Software
+Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+*/
+using System;
 using System.Windows.Forms;
 using AdamMil.Mathematics.Geometry;
 using AdamMil.Utilities;
@@ -17,7 +36,7 @@ namespace Maneubo
 
     public InterceptForm(UnitShape unit, UnitShape target, UnitSystem unitSystem, bool disableControls) : this()
     {
-      if(target != null)
+      if(target != null && target != unit)
       {
         if(unit != null)
         {
@@ -35,33 +54,17 @@ namespace Maneubo
       if(unit == null) radVector.Enabled = radWaypoint.Enabled = btnOK.Enabled = false;
 
       this.unit       = unit;
-      this.target     = target;
       this.unitSystem = unitSystem;
+      if(disableControls) this.target = target;
       UpdateSolution();
     }
 
-    public bool CreateWaypoints
-    {
-      get { return radWaypoint.Checked; }
-    }
-
-    public double Course
-    {
-      get { return MB.SwapBearing(Solution.Angle); }
-    }
-
+    public bool CreateWaypoints => radWaypoint.Checked;
+    public double Course => MB.SwapBearing(Solution.Angle);
     public Point2 InterceptPoint { get; private set; }
     public Vector2 Solution { get; private set; }
-
-    public double Speed
-    {
-      get { return Solution.Length; }
-    }
-
-    public double Time
-    {
-      get { return (InterceptPoint-unit.Position).Length / Speed; }
-    }
+    public double Speed => Solution.Length;
+    public double Time => (InterceptPoint-unit.Position).Length / Speed;
 
     bool UpdateSolution()
     {

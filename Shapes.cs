@@ -1,4 +1,23 @@
-﻿using System;
+﻿/*
+Maneubo is an application that provides a virtual maneuvering board and target
+motion analysis.
+
+http://www.adammil.net/Maneubo
+Copyright (C) 2011-2020 Adam Milazzo
+
+This program is free software; you can redistribute it and/or
+modify it under the terms of the GNU General Public License
+as published by the Free Software Foundation; either version 2
+of the License, or (at your option) any later version.
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+You should have received a copy of the GNU General Public License
+along with this program; if not, write to the Free Software
+Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+*/
+using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
@@ -18,16 +37,8 @@ namespace Maneubo
   #region Handle
   abstract class Handle
   {
-    public virtual BoardPoint GetStartPoint(Shape shape, BoardPoint dragStart)
-    {
-      return dragStart;
-    }
-
-    public virtual string GetStatusText(Shape shape)
-    {
-      return null;
-    }
-
+    public virtual BoardPoint GetStartPoint(Shape shape, BoardPoint dragStart) => dragStart;
+    public virtual string GetStatusText(Shape shape) => null;
     public abstract void Update(Shape shape, BoardPoint dragStart, BoardPoint dragPoint);
   }
   #endregion
@@ -35,18 +46,12 @@ namespace Maneubo
   #region Shape
   abstract class Shape
   {
-    protected Shape()
-    {
-      Children = new ChildCollection(this);
-    }
+    protected Shape() => Children = new ChildCollection(this);
 
     #region ChildCollection
     public sealed class ChildCollection : ValidatedCollection<Shape>
     {
-      public ChildCollection(Shape parent)
-      {
-        this.parent = parent;
-      }
+      public ChildCollection(Shape parent) => this.parent = parent;
 
       protected override void ClearItems()
       {
@@ -109,7 +114,7 @@ namespace Maneubo
 
     public IEnumerable<Shape> EnumerateAncestors()
     {
-      for(Shape ancestor=Parent; ancestor != null; ancestor = ancestor.Parent) yield return ancestor;
+      for(Shape ancestor = Parent; ancestor != null; ancestor = ancestor.Parent) yield return ancestor;
     }
 
     public IEnumerable<Shape> EnumerateDescendants()
@@ -123,10 +128,7 @@ namespace Maneubo
 
     public abstract KeyValuePair<double,Handle> GetSelectionDistance(SysPoint point);
 
-    public bool IsAncestorOf(Shape otherShape)
-    {
-      return IsAncestorOf(otherShape, true);
-    }
+    public bool IsAncestorOf(Shape otherShape) => IsAncestorOf(otherShape, true);
 
     public bool IsAncestorOf(Shape otherShape, bool includeSelf)
     {
@@ -159,18 +161,13 @@ namespace Maneubo
       return shape;
     }
 
-    protected Brush Brush
-    {
-      get
-      {
-        return this == Board.ReferenceShape ? Board.referenceBrush : this == Board.SelectedShape ? Board.selectedBrush : Board.normalBrush;
-      }
-    }
+    protected Brush Brush =>
+      this == Board.ReferenceShape ? this == Board.SelectedShape ? Board.selRefBrush : Board.referenceBrush :
+                                     this == Board.SelectedShape ? Board.selectedBrush : Board.normalBrush;
 
-    protected Pen Pen
-    {
-      get { return this == Board.ReferenceShape ? Board.referencePen : this == Board.SelectedShape ? Board.selectedPen : Board.normalPen; }
-    }
+    protected Pen Pen =>
+      this == Board.ReferenceShape ? this == Board.SelectedShape ? Board.selRefPen : Board.referencePen :
+                                     this == Board.SelectedShape ? Board.selectedPen : Board.normalPen;
 
     protected void CenterText(Graphics graphics, float x, float y, string text)
     {
@@ -181,19 +178,13 @@ namespace Maneubo
       }
     }
 
-    protected void RenderName(Graphics graphics, float x, float y)
-    {
-      CenterText(graphics, x, y, Name);
-    }
+    protected void RenderName(Graphics graphics, float x, float y) => CenterText(graphics, x, y, Name);
 
     protected internal abstract void Save(XmlWriter writer);
 
     internal uint ID { get; set; }
 
-    internal string GetXmlId()
-    {
-      return "u" + ID.ToStringInvariant();
-    }
+    internal string GetXmlId() => "u" + ID.ToStringInvariant();
 
     internal void SetBoard(ManeuveringBoard board)
     {
@@ -210,7 +201,7 @@ namespace Maneubo
 
     public double Radius
     {
-      get { return _radius; }
+      get => _radius;
       set
       {
         if(value < 0) throw new ArgumentOutOfRangeException();
@@ -237,7 +228,7 @@ namespace Maneubo
 
     public static CircleShape Load(XmlReader reader)
     {
-      CircleShape circle = new CircleShape();
+      var circle = new CircleShape();
       circle.Position = ManeuveringBoard.ParseXmlPoint(reader.GetStringAttribute("position"));
       circle.Radius   = reader.GetDoubleAttribute("radius");
       return circle;
@@ -245,8 +236,7 @@ namespace Maneubo
 
     public override void Render(Graphics graphics)
     {
-      float scale = (float)Board.ZoomFactor;
-      float centerX = (float)Position.X * scale, centerY = -(float)Position.Y * scale;
+      float scale = (float)Board.ZoomFactor, centerX = (float)Position.X * scale, centerY = -(float)Position.Y * scale;
       graphics.DrawCircle(Pen, centerX, centerY, (float)Radius * scale);
 
       const float CrossSize = 5;
@@ -264,22 +254,16 @@ namespace Maneubo
       writer.WriteEndElement();
     }
 
-    internal string GetRadiusStatusText()
-    {
-      return "Radius: " + Board.GetDistanceString(Radius);
-    }
+    internal string GetRadiusStatusText() => "Radius: " + Board.GetDistanceString(Radius);
 
     #region EdgeHandle
     sealed class EdgeHandle : Handle
     {
-      public override string GetStatusText(Shape shape)
-      {
-        return ((CircleShape)shape).GetRadiusStatusText();
-      }
+      public override string GetStatusText(Shape shape) => ((CircleShape)shape).GetRadiusStatusText();
 
       public override void Update(Shape shape, BoardPoint dragStart, BoardPoint dragPoint)
       {
-        CircleShape circle = (CircleShape)shape;
+        var circle = (CircleShape)shape;
         circle.Radius = (dragPoint - circle.Position).Length;
       }
     }
@@ -297,14 +281,11 @@ namespace Maneubo
     public BoardPoint Start { get; set; }
     public BoardPoint End { get; set; }
 
-    public double Length
-    {
-      get { return Vector.Length; }
-    }
+    public double Length => Vector.Length;
 
     public override BoardPoint Position
     {
-      get { return Start + Vector*0.5; }
+      get => Start + Vector*0.5;
       set
       {
         Vector2 half = Vector*0.5;
@@ -313,10 +294,7 @@ namespace Maneubo
       }
     }
 
-    public Vector2 Vector
-    {
-      get { return End - Start; }
-    }
+    public Vector2 Vector => End - Start;
 
     public override KeyValuePair<double,Handle> GetSelectionDistance(SysPoint point)
     {
@@ -335,7 +313,7 @@ namespace Maneubo
 
     public static LineShape Load(XmlReader reader)
     {
-      LineShape line = new LineShape();
+      var line = new LineShape();
       line.Start = ManeuveringBoard.ParseXmlPoint(reader.GetStringAttribute("start"));
       line.End   = ManeuveringBoard.ParseXmlPoint(reader.GetStringAttribute("end"));
       return line;
@@ -369,46 +347,32 @@ namespace Maneubo
     #region LineHandle
     abstract class LineHandle : Handle
     {
-      public override string GetStatusText(Shape shape)
-      {
-        return ((LineShape)shape).GetStatusText();
-      }
+      public override string GetStatusText(Shape shape) => ((LineShape)shape).GetStatusText();
     }
     #endregion
 
     #region StartHandle
     sealed class StartHandle : LineHandle
     {
-      public override void Update(Shape shape, BoardPoint dragStart, BoardPoint dragPoint)
-      {
-        ((LineShape)shape).Start = dragPoint;
-      }
+      public override void Update(Shape shape, BoardPoint dragStart, BoardPoint dragPoint) => ((LineShape)shape).Start = dragPoint;
     }
     #endregion
 
     #region EndHandle
     sealed class EndHandle : LineHandle
     {
-      public override void Update(Shape shape, BoardPoint dragStart, BoardPoint dragPoint)
-      {
-        ((LineShape)shape).End = dragPoint;
-      }
+      public override void Update(Shape shape, BoardPoint dragStart, BoardPoint dragPoint) => ((LineShape)shape).End = dragPoint;
     }
     #endregion
 
     #region MoveHandle
     sealed class MoveHandle : LineHandle
     {
-      public override BoardPoint GetStartPoint(Shape shape, BoardPoint dragStart)
-      {
-        // return a "point" (actually a vector) representing the difference between the drag start and the line center
-        return (dragStart - ((LineShape)shape).Position).ToPoint();
-      }
+      // return a "point" (actually a vector) representing the difference between the drag start and the line center
+      public override BoardPoint GetStartPoint(Shape shape, BoardPoint dragStart) => (dragStart - ((LineShape)shape).Position).ToPoint();
 
-      public override void Update(Shape shape, BoardPoint dragStart, BoardPoint dragPoint)
-      {
+      public override void Update(Shape shape, BoardPoint dragStart, BoardPoint dragPoint) =>
         ((LineShape)shape).Position = new BoardPoint(dragPoint.X - dragStart.X, dragPoint.Y - dragStart.Y);
-      }
     }
     #endregion
 
@@ -431,7 +395,7 @@ namespace Maneubo
     /// </summary>
     public double Direction
     {
-      get { return _direction; }
+      get => _direction;
       set
       {
         while(value < 0) value += Math.PI*2;
@@ -450,7 +414,7 @@ namespace Maneubo
 
     public Vector2 Velocity
     {
-      get { return new Vector2(0, Speed).Rotate(-Direction); }
+      get => new Vector2(0, Speed).Rotate(-Direction);
       set
       {
         Speed = value.Length;
@@ -459,11 +423,11 @@ namespace Maneubo
     }
 
     /// <summary>Gets or sets the unit's speed, in meters per second. This speed may be relative or true, depending on the value of
-    /// <see cref="IsmotionRelative"/>.
+    /// <see cref="IsMotionRelative"/>.
     /// </summary>
     public double Speed
     {
-      get { return _speed; }
+      get => _speed;
       set
       {
         if(value < 0) throw new ArgumentOutOfRangeException();
@@ -475,35 +439,45 @@ namespace Maneubo
 
     public UnitShapeType Type { get; set; }
 
-    public double GetEffectiveSpeed()
+    public Waypoint GetApplicableWaypoint(TimeSpan time, out Waypoint previousWaypoint, bool wantLine = false)
     {
-      return GetEffectiveSpeed(new TimeSpan());
+      Waypoint applicableWaypoint = null, previous = null;
+      foreach(Waypoint waypoint in Children.OfType<Waypoint>())
+      {
+        previous           = applicableWaypoint;
+        applicableWaypoint = waypoint;
+        if(waypoint.Time > time && (!wantLine && waypoint.Time > TimeSpan.Zero || previous != null)) break;
+      }
+
+      // if we're after the last waypoint, discard the one before it
+      if(!wantLine && time >= TimeSpan.Zero && applicableWaypoint != null && applicableWaypoint.Time < TimeSpan.Zero) previous = null;
+      previousWaypoint = previous;
+      return applicableWaypoint;
     }
 
-    public double GetEffectiveSpeed(TimeSpan time)
-    {
-      return GetEffectiveVelocity(time).Length;
-    }
-
-    public Vector2 GetEffectiveVelocity()
-    {
-      return GetEffectiveVelocity(new TimeSpan());
-    }
+    public double GetEffectiveSpeed() => GetEffectiveSpeed(TimeSpan.Zero);
+    public double GetEffectiveSpeed(TimeSpan time) => GetEffectiveVelocity(time).Length;
+    public Vector2 GetEffectiveVelocity() => GetEffectiveVelocity(TimeSpan.Zero);
 
     public Vector2 GetEffectiveVelocity(TimeSpan time)
     {
       Waypoint applicableWaypoint, previousWaypoint;
       applicableWaypoint = GetApplicableWaypoint(time, out previousWaypoint);
 
-      if(applicableWaypoint == null)
+      if(applicableWaypoint == null) // if there are no waypoints...
       {
-        return Velocity;
+        return Velocity; // return our shape velocity
       }
-      else
+      else if(previousWaypoint == null) // otherwise, if there's only one waypoint or we're before the first waypoint...
       {
-        bool crossedZero = previousWaypoint == null || (previousWaypoint.Time < TimeSpan.Zero && applicableWaypoint.Time > TimeSpan.Zero);
-        bool thisIsPrev = previousWaypoint == null || crossedZero && time >= TimeSpan.Zero;
-        bool thisIsNext = previousWaypoint != null && crossedZero && time < TimeSpan.Zero;
+        if(applicableWaypoint.Time == TimeSpan.Zero) return Vector2.Zero; // if we're right on the waypoint, our velocity is zero
+        return (applicableWaypoint.Position - Position) / applicableWaypoint.Time.TotalSeconds;
+      }
+      else // otherwise, if we're between two waypoints or after the last waypoint...
+      {
+        bool crossedZero = previousWaypoint.Time < TimeSpan.Zero && applicableWaypoint.Time > TimeSpan.Zero; // between two waypoints?
+        bool thisIsPrev = crossedZero && time >= TimeSpan.Zero;
+        bool thisIsNext = crossedZero && time < TimeSpan.Zero;
         double previousTime = thisIsPrev ? 0 : previousWaypoint.Time.TotalSeconds;
         double nextTime     = thisIsNext ? 0 : applicableWaypoint.Time.TotalSeconds;
         BoardPoint previousPosition = thisIsPrev ? Position : previousWaypoint.Position;
@@ -517,15 +491,21 @@ namespace Maneubo
       Waypoint applicableWaypoint, previousWaypoint;
       applicableWaypoint = GetApplicableWaypoint(time, out previousWaypoint);
 
-      if(applicableWaypoint == null)
+      if(applicableWaypoint == null) // if there are no waypoints...
       {
-        return Position + Velocity*time.TotalSeconds;
+        return Position + Velocity*time.TotalSeconds; // extrapolate our position
+      }
+      else if(previousWaypoint == null) // otherwise, if there's only one waypoint...
+      {
+        if(applicableWaypoint.Time == TimeSpan.Zero) return Position;
+        Vector2 velocity = (applicableWaypoint.Position - Position) / applicableWaypoint.Time.TotalSeconds;
+        return Position + velocity*time.TotalSeconds;
       }
       else
       {
-        bool crossedZero = previousWaypoint == null || (previousWaypoint.Time < TimeSpan.Zero && applicableWaypoint.Time > TimeSpan.Zero);
-        bool thisIsPrev = previousWaypoint == null || crossedZero && time >= TimeSpan.Zero;
-        bool thisIsNext = previousWaypoint != null && crossedZero && time < TimeSpan.Zero;
+        bool crossedZero = previousWaypoint.Time < TimeSpan.Zero && applicableWaypoint.Time > TimeSpan.Zero;
+        bool thisIsPrev = crossedZero && time >= TimeSpan.Zero;
+        bool thisIsNext = crossedZero && time < TimeSpan.Zero;
         double previousTime = thisIsPrev ? 0 : previousWaypoint.Time.TotalSeconds;
         double nextTime     = thisIsNext ? 0 : applicableWaypoint.Time.TotalSeconds;
         BoardPoint previousPosition = thisIsPrev ? Position : previousWaypoint.Position;
@@ -543,7 +523,7 @@ namespace Maneubo
       // if we're drawing a motion vector and the vector is not controlled by waypoints, allow the user to grab that, too
       if(ShouldDrawMotionVector && Speed > 0 && !Children.Any(c => c is Waypoint))
       {
-        Vector2 vector = new Vector2(0, Speed*ManeuveringBoard.VectorTime).Rotate(-Direction);
+        var vector = new Vector2(0, Speed*ManeuveringBoard.VectorTime).Rotate(-Direction);
         // use two pixels before the endpoint as the hotspot, since that's closer to the center of mass of the arrow head
         vector.GetNormal(vector.Length-2/Board.ZoomFactor);
         distance = boardPoint.DistanceTo(Position + vector) * Board.ZoomFactor;
@@ -648,7 +628,7 @@ namespace Maneubo
 
     public static new UnitShape Load(XmlReader reader, Dictionary<Observation,string> observers, Dictionary<string,UnitShape> unitsById)
     {
-      UnitShape shape = new UnitShape();
+      var shape = new UnitShape();
       shape.Name = reader.GetAttribute("name");
       shape.Position = ManeuveringBoard.ParseXmlPoint(reader.GetStringAttribute("position"));
       shape.Direction = reader.GetDoubleAttribute("course");
@@ -714,10 +694,10 @@ namespace Maneubo
 
       // make note of the indexes of all the items
       int[] indexes = new int[Children.Count];
-      for(int i=0; i<indexes.Length; i++) indexes[i] = i;
+      for(int i = 0; i < indexes.Length; i++) indexes[i] = i;
 
       // sort the indexes
-      Dictionary<UnitShape, int> observerNumbers = new Dictionary<UnitShape, int>();
+      var observerNumbers = new Dictionary<UnitShape, int>();
       Array.Sort(indexes, (ai, bi) =>
       {
         // first sort observations after non-observations
@@ -746,9 +726,9 @@ namespace Maneubo
       });
 
       int[] backIndexes = new int[indexes.Length];
-      for(int i=0; i<backIndexes.Length; i++) backIndexes[indexes[i]] = i;
+      for(int i = 0; i < backIndexes.Length; i++) backIndexes[indexes[i]] = i;
 
-      for(int i=0; i<indexes.Length; i++)
+      for(int i = 0; i < indexes.Length; i++)
       {
         if(indexes[i] != i)
         {
@@ -762,20 +742,17 @@ namespace Maneubo
     #region VectorHandle
     sealed class VectorHandle : Handle
     {
-      public override BoardPoint GetStartPoint(Shape shape, BoardPoint dragStart)
-      {
-        return shape.Position;
-      }
+      public override BoardPoint GetStartPoint(Shape shape, BoardPoint dragStart) => shape.Position;
 
       public override string GetStatusText(Shape shape)
       {
-        UnitShape unit = (UnitShape)shape;
+        var unit = (UnitShape)shape;
         return ManeuveringBoard.GetAngleString(unit.Direction) + ", " + unit.Board.GetSpeedString(unit.Speed);
       }
 
       public override void Update(Shape shape, BoardPoint dragStart, BoardPoint dragPoint)
       {
-        UnitShape unit = (UnitShape)shape;
+        var unit = (UnitShape)shape;
         Vector2 vector = dragPoint - dragStart;
         unit.Direction = ManeuveringBoard.SwapBearing(vector.Angle);
         unit.Speed     = vector.Length * (1.0 / ManeuveringBoard.VectorTime);
@@ -791,20 +768,6 @@ namespace Maneubo
         return Board.SelectedTool != Board.TMATool ||
                selected != this && (selected == null || selected.Parent != this || !(selected is Observation));
       }
-    }
-
-    Waypoint GetApplicableWaypoint(TimeSpan time, out Waypoint previousWaypoint)
-    {
-      Waypoint applicableWaypoint = null, previous = null;
-      foreach(Waypoint waypoint in Children.OfType<Waypoint>())
-      {
-        previous           = applicableWaypoint;
-        applicableWaypoint = waypoint;
-        if(waypoint.Time > time && (previous != null || time >= TimeSpan.Zero)) break;
-      }
-
-      previousWaypoint = previous;
-      return applicableWaypoint;
     }
 
     double _direction, _speed;
@@ -825,20 +788,9 @@ namespace Maneubo
   {
     public TimeSpan Time { get; set; }
 
-    protected void RenderTime(Graphics graphics, PointF point)
-    {
-      RenderTime(graphics, point.X, point.Y);
-    }
-
-    protected void RenderTime(Graphics graphics, float x, float y)
-    {
-      CenterText(graphics, x, y, GetTimeString());
-    }
-
-    protected internal override void Save(XmlWriter writer)
-    {
-      writer.WriteAttributeString("time", GetTimeString());
-    }
+    protected void RenderTime(Graphics graphics, PointF point) => RenderTime(graphics, point.X, point.Y);
+    protected void RenderTime(Graphics graphics, float x, float y) => CenterText(graphics, x, y, GetTimeString());
+    protected internal override void Save(XmlWriter writer) => writer.WriteAttributeString("time", GetTimeString());
 
     protected static void LoadPositionalData(PositionalDataShape shape, XmlReader reader)
     {
@@ -877,19 +829,11 @@ namespace Maneubo
   {
     public UnitShape Observer { get; set; }
 
-    protected new Pen Pen
-    {
-      get { return this == Board.SelectedShape ? Board.selectedObservationPen : Board.observationPen; }
-    }
+    protected new Pen Pen => this == Board.SelectedShape ? Board.selectedObservationPen : Board.observationPen;
 
-    protected bool ShouldRender
-    {
-      get
-      {
-        return Board.ShowAllObservations ||
-               Board.SelectedShape != null && (Board.SelectedShape == Parent || Board.SelectedShape.Parent == Parent);
-      }
-    }
+    protected bool ShouldRender =>
+      Board.ShowAllObservations ||
+        Board.SelectedShape != null && (Board.SelectedShape == Parent || Board.SelectedShape.Parent == Parent);
 
     protected internal override void Save(XmlWriter writer)
     {
@@ -906,24 +850,14 @@ namespace Maneubo
 
     public override BoardPoint Position
     {
-      get { return GetEffectiveObserverPosition() + new Vector2(0, 1).Rotate(-Bearing); }
-      set { Bearing = ManeuveringBoard.AngleBetween(GetEffectiveObserverPosition(), value); }
+      get => GetEffectiveObserverPosition() + new Vector2(0, 1).Rotate(-Bearing);
+      set => Bearing = ManeuveringBoard.AngleBetween(GetEffectiveObserverPosition(), value);
     }
 
-    public Vector2 Vector
-    {
-      get { return new Vector2(0, 1).Rotate(-Bearing); }
-    }
+    public Vector2 Vector => new Vector2(0, 1).Rotate(-Bearing);
 
-    public Line2 GetBearingLine()
-    {
-      return new Line2(GetEffectiveObserverPosition(), Vector);
-    }
-
-    public BoardPoint GetEffectiveObserverPosition()
-    {
-      return Observer.GetPositionAt(Time);
-    }
+    public Line2 GetBearingLine() => new Line2(GetEffectiveObserverPosition(), Vector);
+    public BoardPoint GetEffectiveObserverPosition() => Observer.GetPositionAt(Time);
 
     public override KeyValuePair<double, Handle> GetSelectionDistance(SysPoint point)
     {
@@ -936,7 +870,7 @@ namespace Maneubo
       {
         BoardPoint boardPoint = Board.GetBoardPoint(point);
         BoardPoint observerPosition = GetEffectiveObserverPosition();
-        Line2 bearingLine = new Line2(observerPosition, new Vector2(0, 1).Rotate(-Bearing));
+        var bearingLine = new Line2(observerPosition, new Vector2(0, 1).Rotate(-Bearing));
         distance = Math.Abs(bearingLine.DistanceTo(boardPoint)) * Board.ZoomFactor;
 
         // the distance measurement considers the entire infinite line, but we only want to consider the ray starting from the observer, so
@@ -957,14 +891,14 @@ namespace Maneubo
         BoardPoint observerPosition = GetEffectiveObserverPosition();
         observerPosition = new BoardPoint(observerPosition.X*Board.ZoomFactor, -observerPosition.Y*Board.ZoomFactor);
         Vector2 screenVector = new Vector2(0, -1).Rotate(Bearing);
-        Line2 bearingLine = new Line2(observerPosition, screenVector);
+        var bearingLine = new Line2(observerPosition, screenVector);
 
         // since the bearing line is infinitely long, we'll test the intersection of the line against all four sides of the clipping
         // rectangle, and draw the line to the furthest intersection
-        BoardRect clipRect = new BoardRect(graphics.VisibleClipBounds);
+        var clipRect = new BoardRect(graphics.VisibleClipBounds);
         BoardPoint endPoint = BoardPoint.Invalid;
         double maxDistance = 0;
-        for(int i=0; i<4; i++)
+        for(int i = 0; i < 4; i++)
         {
           Line2 edge = clipRect.GetEdge(i);
           LineIntersection intersection = bearingLine.GetIntersectionInfo(edge);
@@ -992,7 +926,7 @@ namespace Maneubo
 
     public static BearingObservation Load(XmlReader reader, Dictionary<Observation,string> observers)
     {
-      BearingObservation shape = new BearingObservation();
+      var shape = new BearingObservation();
       LoadPositionalData(shape, reader);
       shape.Bearing = reader.GetDoubleAttribute("bearing");
       observers.Add(shape, reader.GetAttribute("observer"));
@@ -1040,7 +974,7 @@ namespace Maneubo
 
     public static PointObservation Load(XmlReader reader, Dictionary<Observation,string> observers)
     {
-      PointObservation shape = new PointObservation();
+      var shape = new PointObservation();
       LoadPositionalData(shape, reader);
       shape.Position = ManeuveringBoard.ParseXmlPoint(reader.GetStringAttribute("position"));
       observers.Add(shape, reader.GetAttribute("observer"));
@@ -1098,7 +1032,7 @@ namespace Maneubo
 
     public static Waypoint Load(XmlReader reader)
     {
-      Waypoint shape = new Waypoint();
+      var shape = new Waypoint();
       LoadPositionalData(shape, reader);
       shape.Position = ManeuveringBoard.ParseXmlPoint(reader.GetStringAttribute("position"));
       return shape;
@@ -1112,15 +1046,9 @@ namespace Maneubo
       writer.WriteEndElement();
     }
 
-    bool ShouldRender
-    {
-      get
-      {
-        return Board.ShowAllObservations ||
-               Board.ReferenceShape != null && Board.ReferenceShape == Parent ||
-               Board.SelectedShape != null && (Board.SelectedShape == Parent || Board.SelectedShape.Parent == Parent);
-      }
-    }
+    bool ShouldRender =>
+      Board.ShowAllObservations || Board.ReferenceShape != null && Board.ReferenceShape == Parent ||
+      Board.SelectedShape != null && (Board.SelectedShape == Parent || Board.SelectedShape.Parent == Parent);
   }
   #endregion
 }

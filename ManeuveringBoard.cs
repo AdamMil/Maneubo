@@ -1,4 +1,23 @@
-﻿using System;
+﻿/*
+Maneubo is an application that provides a virtual maneuvering board and target
+motion analysis.
+
+http://www.adammil.net/Maneubo
+Copyright (C) 2011-2020 Adam Milazzo
+
+This program is free software; you can redistribute it and/or
+modify it under the terms of the GNU General Public License
+as published by the Free Software Foundation; either version 2
+of the License, or (at your option) any later version.
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+You should have received a copy of the GNU General Public License
+along with this program; if not, write to the Free Software
+Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+*/
+using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Drawing;
@@ -83,7 +102,7 @@ namespace Maneubo
 
     public static TMASolution Load(XmlReader reader)
     {
-      TMASolution solution = new TMASolution();
+      var solution = new TMASolution();
       solution.Position = ManeuveringBoard.ParseXmlPoint(reader.GetStringAttribute("position"));
       solution.Velocity = ManeuveringBoard.ParseXmlVector(reader.GetStringAttribute("velocity"));
       solution.LockCourse = reader.GetBoolAttribute("lockCourse");
@@ -128,14 +147,11 @@ namespace Maneubo
       _tmaColor         = DefaultTMAColor;
       _unselectedColor  = DefaultUnselectedColor;
 
-      normalPen = new Pen(UnselectedColor);
-      normalPen.Width = 2;
-      selectedPen = new Pen(SelectedColor);
-      selectedPen.Width = 2;
-      referencePen = new Pen(ReferenceColor);
-      referencePen.Width = 2;
-      tmaPen = new Pen(TMAColor);
-      tmaPen.Width = 2;
+      normalPen = new Pen(UnselectedColor) { Width = 2 };
+      selectedPen = new Pen(SelectedColor) { Width = 2 };
+      referencePen = new Pen(ReferenceColor) { Width = 2 };
+      selRefPen = new Pen(ReferenceColor) { Width = 2 };
+      tmaPen = new Pen(TMAColor) { Width = 2 };
       observationPen = new Pen(ObservationColor);
       selectedObservationPen = (Pen)selectedPen.Clone();
 
@@ -145,6 +161,8 @@ namespace Maneubo
       observationBrush = new SolidBrush(observationPen.Color);
       scaleBrush1      = new SolidBrush(ScaleColor1);
       scaleBrush2      = new SolidBrush(ScaleColor2);
+      selRefBrush      = new SolidBrush(selRefPen.Color);
+      UpdateSelRefColor();
 
       WasChanged = false;
     }
@@ -152,10 +170,7 @@ namespace Maneubo
     #region ShapeCollection
     public sealed class ShapeCollection : ValidatedCollection<Shape>
     {
-      internal ShapeCollection(ManeuveringBoard board)
-      {
-        this.board = board;
-      }
+      internal ShapeCollection(ManeuveringBoard board) => this.board = board;
 
       protected override void ClearItems()
       {
@@ -198,20 +213,17 @@ namespace Maneubo
     #region Tool
     public abstract class Tool
     {
-      protected Tool(ManeuveringBoard board)
-      {
-        Board = board;
-      }
+      protected Tool(ManeuveringBoard board) => Board = board;
 
       public virtual void Activate() { }
       public virtual void Deactivate() { }
       public virtual void KeyPress(KeyEventArgs e, bool down) { }
-      public virtual bool MouseClick(MouseEventArgs e) { return false; }
+      public virtual bool MouseClick(MouseEventArgs e) => false;
       public virtual void MouseMove(MouseEventArgs e) { }
-      public virtual bool MouseDragStart(MouseEventArgs e) { return false; }
+      public virtual bool MouseDragStart(MouseEventArgs e) => false;
       public virtual void MouseDrag(MouseDragEventArgs e) { }
       public virtual void MouseDragEnd(MouseDragEventArgs e) { }
-      public virtual bool MouseWheel(MouseEventArgs e) { return false; }
+      public virtual bool MouseWheel(MouseEventArgs e) => false;
       public virtual void SelectionChanged(Shape previousSelection) { }
       public virtual void ReferenceChanged(UnitShape previousReference) { }
       public virtual void ShapeChanged(Shape shape) { }
@@ -229,7 +241,7 @@ namespace Maneubo
 
       public override bool MouseDragStart(MouseEventArgs e)
       {
-        if(e.Button == MouseButtons.Left && (Control.ModifierKeys == Keys.Shift || Board.GetShapeUnderCursor(e.Location) == null))
+        if(e.Button == MouseButtons.Left && (ModifierKeys == Keys.Shift || Board.GetShapeUnderCursor(e.Location) == null))
         {
           circle = new CircleShape() { Position = Board.GetBoardPoint(e.Location) };
           Board.RootShapes.Add(circle);
@@ -248,10 +260,7 @@ namespace Maneubo
         }
       }
 
-      public override void MouseDragEnd(MouseDragEventArgs e)
-      {
-        circle = null;
-      }
+      public override void MouseDragEnd(MouseDragEventArgs e) => circle = null;
 
       public override void MouseMove(MouseEventArgs e)
       {
@@ -270,7 +279,7 @@ namespace Maneubo
 
       public override bool MouseDragStart(MouseEventArgs e)
       {
-        if(e.Button == MouseButtons.Left && (Control.ModifierKeys == Keys.Shift || Board.GetShapeUnderCursor(e.Location) == null))
+        if(e.Button == MouseButtons.Left && (ModifierKeys == Keys.Shift || Board.GetShapeUnderCursor(e.Location) == null))
         {
           line = new LineShape() { Start = Board.GetBoardPoint(e.Location) };
           Board.RootShapes.Add(line);
@@ -289,10 +298,7 @@ namespace Maneubo
         }
       }
 
-      public override void MouseDragEnd(MouseDragEventArgs e)
-      {
-        line = null;
-      }
+      public override void MouseDragEnd(MouseDragEventArgs e) => line = null;
 
       public override void MouseMove(MouseEventArgs e)
       {
@@ -307,14 +313,11 @@ namespace Maneubo
     #region AddObservationToolClass
     public sealed class AddObservationToolClass : Tool
     {
-      public AddObservationToolClass(ManeuveringBoard board) : base(board)
-      {
-        Type = PositionalDataType.Point;
-      }
+      public AddObservationToolClass(ManeuveringBoard board) : base(board) => Type = PositionalDataType.Point;
 
       public PositionalDataType Type
       {
-        get { return _type; }
+        get => _type;
         set
         {
           if(value != Type)
@@ -330,10 +333,10 @@ namespace Maneubo
         if(e.Button == MouseButtons.Left)
         {
           UnitShape unit;
-          bool project = (Control.ModifierKeys & Keys.Control) != 0;
+          bool project = (ModifierKeys & Keys.Control) != 0;
           // clicking on a unit selects it. this way, the user doesn't have to change tools or right-click and dismiss the menu to change
           // the target for which we'll add an observation. holding shift overrides this, as does holding control to project a bearing line
-          if((Control.ModifierKeys & Keys.Shift) == 0 && !project)
+          if((ModifierKeys & Keys.Shift) == 0 && !project)
           {
             Shape shape = Board.GetShapeUnderCursor(e.Location);
             if(shape is UnitShape ||
@@ -347,7 +350,7 @@ namespace Maneubo
           }
 
           unit = GetSelectedUnit();
-          if(unit == null)
+          if(unit == null && (Type != PositionalDataType.Waypoint || Board.ReferenceShape == null))
           {
             MessageBox.Show("To add an observation or waypoint, you must have a unit selected.", "Select a unit",
                             MessageBoxButtons.OK, MessageBoxIcon.Information);
@@ -365,7 +368,7 @@ namespace Maneubo
             }
             else if(Type == PositionalDataType.BearingLine)
             {
-              double bearing = ManeuveringBoard.AngleBetween(Board.ReferenceShape.Position, Board.GetBoardPoint(e.Location));
+              double bearing = AngleBetween(Board.ReferenceShape.Position, Board.GetBoardPoint(e.Location));
               posData = new BearingObservation() { Observer = Board.ReferenceShape, Bearing = bearing };
             }
             else
@@ -377,7 +380,12 @@ namespace Maneubo
             // the observations is most likely to be correct, but anyway EditObservation() will sort them correctly so we don't have to be
             // too careful about order (e.g. we don't have to order by type)
             int index;
-            if(Board.SelectedShape is UnitShape) // insert it as the first observation if the unit is selected
+            if(unit == null) // if we're adding a waypoint to the reference shape
+            {
+              unit  = Board.ReferenceShape;
+              index = 0;
+            }
+            else if(Board.SelectedShape is UnitShape) // insert it as the first observation if the unit is selected
             {
               PositionalDataShape firstObservation =
                 unit.Children.OfType<PositionalDataShape>().Where(
@@ -397,8 +405,7 @@ namespace Maneubo
               // the observation rather than just using the bearing from time zero
               if(Type == PositionalDataType.BearingLine && project)
               {
-                double bearing = ManeuveringBoard.AngleBetween(Board.ReferenceShape.GetPositionAt(posData.Time),
-                                                               Board.GetBoardPoint(e.Location));
+                double bearing = AngleBetween(Board.ReferenceShape.GetPositionAt(posData.Time), Board.GetBoardPoint(e.Location));
                 ((BearingObservation)posData).Bearing = bearing;
               }
               Board.SelectedShape = posData;
@@ -414,22 +421,15 @@ namespace Maneubo
         return false;
       }
 
-      public override void MouseMove(MouseEventArgs e)
-      {
-        InvalidateIfApplicable();
-      }
-
-      public override void SelectionChanged(Shape previousSelection)
-      {
-        InvalidateIfApplicable();
-      }
+      public override void MouseMove(MouseEventArgs e) => InvalidateIfApplicable();
+      public override void SelectionChanged(Shape previousSelection) => InvalidateIfApplicable();
 
       public override void RenderDecorations(Graphics graphics)
       {
         if(IsApplicable)
         {
           // TODO: use a preallocated pen?
-          using(Pen pen = new Pen(Color.FromArgb(96, Color.Black), 1))
+          using(var pen = new Pen(Color.FromArgb(96, Color.Black), 1))
           {
             SysPoint clientPoint = Board.PointToClient(Cursor.Position);
             BoardPoint boardPoint = Board.GetBoardPoint(clientPoint);
@@ -439,18 +439,13 @@ namespace Maneubo
         }
       }
 
-      bool IsApplicable
-      {
-        get
-        {
-          return Board.ReferenceShape != null &&
-                 (Type == PositionalDataType.Waypoint || Board.ReferenceShape != Board.SelectedShape && GetSelectedUnit() != null);
-        }
-      }
+      bool IsApplicable =>
+        Board.ReferenceShape != null &&
+          (Type == PositionalDataType.Waypoint || Board.ReferenceShape != Board.SelectedShape && GetSelectedUnit() != null);
 
       UnitShape GetSelectedUnit()
       {
-        UnitShape unit = Board.SelectedShape as UnitShape;
+        var unit = Board.SelectedShape as UnitShape;
         if(unit == null && Board.SelectedShape != null) unit = Board.SelectedShape.Parent as UnitShape;
         return unit;
       }
@@ -467,10 +462,7 @@ namespace Maneubo
     #region AddUnitToolClass
     public sealed class AddUnitToolClass : Tool
     {
-      public AddUnitToolClass(ManeuveringBoard board) : base(board)
-      {
-        Type = UnitShapeType.Surface;
-      }
+      public AddUnitToolClass(ManeuveringBoard board) : base(board) => Type = UnitShapeType.Surface;
 
       public UnitShapeType Type { get; set; }
 
@@ -478,21 +470,15 @@ namespace Maneubo
       {
         if(e.Button == MouseButtons.Left)
         {
-          UnitShape unit;
-          
           // clicking on a unit selects it. this way, the user doesn't have to change tools or right-click and dismiss the menu to change
           // selection
-          if(Control.ModifierKeys != Keys.Shift)
+          if(ModifierKeys != Keys.Shift && Board.GetShapeUnderCursor(e.Location) is UnitShape unit)
           {
-            unit = Board.GetShapeUnderCursor(e.Location) as UnitShape;
-            if(unit != null)
-            {
-              Board.SelectedShape = unit;
-              return true;
-            }
+            Board.SelectedShape = unit;
+            return true;
           }
 
-          HashSet<string> names = new HashSet<string>();
+          var names = new HashSet<string>();
           foreach(Shape shape in Board.EnumerateShapes())
           {
             if(!string.IsNullOrEmpty(shape.Name)) names.Add(shape.Name);
@@ -510,16 +496,13 @@ namespace Maneubo
         return false;
       }
 
-      public override void MouseMove(MouseEventArgs e)
-      {
-        InvalidateIfReference();
-      }
+      public override void MouseMove(MouseEventArgs e) => InvalidateIfReference();
 
       public override void RenderDecorations(Graphics graphics)
       {
         if(Board.ReferenceShape != null)
         {
-          using(Pen pen = new Pen(Color.FromArgb(96, Color.Black), 1))
+          using(var pen = new Pen(Color.FromArgb(96, Color.Black), 1))
           {
             SysPoint clientPoint = Board.PointToClient(Cursor.Position);
             BoardPoint boardPoint = Board.GetBoardPoint(clientPoint);
@@ -541,22 +524,14 @@ namespace Maneubo
     {
       public InterceptToolClass(ManeuveringBoard board) : base(board) { }
 
-      public override void Activate()
-      {
-        SetStatusText();
-      }
-
-      public override void Deactivate()
-      {
-        Board.StatusText = "";
-      }
+      public override void Activate() => SetStatusText();
+      public override void Deactivate() => Board.StatusText = "";
 
       public override bool MouseClick(MouseEventArgs e)
       {
         if(e.Button == MouseButtons.Left && Board.ReferenceShape != null)
         {
-          UnitShape target = Board.GetShapeUnderCursor(e.Location) as UnitShape;
-          if(target != null && target != Board.ReferenceShape)
+          if(Board.GetShapeUnderCursor(e.Location) is UnitShape target && target != Board.ReferenceShape)
           {
             if(target.Children.Count(c => c is Waypoint) > 1)
             {
@@ -565,7 +540,7 @@ namespace Maneubo
             }
             else
             {
-              InterceptForm form = new InterceptForm(Board.ReferenceShape, target, Board.UnitSystem, true);
+              var form = new InterceptForm(Board.ReferenceShape, target, Board.UnitSystem, true);
               if(form.ShowDialog() == DialogResult.OK) Board.ApplyIntercept(Board.ReferenceShape, form);
             }
             return true;
@@ -575,15 +550,8 @@ namespace Maneubo
         return false;
       }
 
-      public override void MouseMove(MouseEventArgs e)
-      {
-        SetStatusText();
-      }
-
-      void SetStatusText()
-      {
-        Board.StatusText = "Choose a reference unit and click the intercept target...";
-      }
+      public override void MouseMove(MouseEventArgs e) => SetStatusText();
+      void SetStatusText() => Board.StatusText = "Choose a reference unit and click the intercept target...";
     }
     #endregion
 
@@ -644,7 +612,7 @@ namespace Maneubo
         if(dragButton == MouseButtons.Left)
         {
           double distance = dragStart.DistanceTo(dragPoint);
-          BackgroundScaleForm form = new BackgroundScaleForm(distance*Board.ZoomFactor, distance, Board.UnitSystem);
+          var form = new BackgroundScaleForm(distance*Board.ZoomFactor, distance, Board.UnitSystem);
           if(form.ShowDialog() == DialogResult.OK) Board.BackgroundImageScale *= form.Distance / distance;
           Board.Invalidate(); // erase the scale line
         }
@@ -670,17 +638,13 @@ namespace Maneubo
     {
       public SetupMapProjectionClass(ManeuveringBoard board) : base(board) { }
 
-      public override void Deactivate()
-      {
-        Board.StatusText = "";
-      }
+      public override void Deactivate() => Board.StatusText = "";
 
       public override bool MouseClick(MouseEventArgs e)
       {
         if(e.Button == MouseButtons.Left)
         {
-          MapProjectionForm form = new MapProjectionForm();
-
+          var form = new MapProjectionForm();
           if(Board.Projection != null)
           {
             BoardPoint point = Board.GetGeographicalPoint(Board.GetBoardPoint(e.Location));
@@ -705,10 +669,7 @@ namespace Maneubo
         return false;
       }
 
-      public override void MouseMove(MouseEventArgs e)
-      {
-        Board.StatusText = "Click a point to set its coordinates...";
-      }
+      public override void MouseMove(MouseEventArgs e) => Board.StatusText = "Click a point to set its coordinates...";
     }
     #endregion
 
@@ -717,10 +678,7 @@ namespace Maneubo
     {
       public TMAToolClass(ManeuveringBoard board) : base(board) { }
 
-      public override void Activate()
-      {
-        SelectionChanged(null);
-      }
+      public override void Activate() => SelectionChanged(null);
 
       public override void Deactivate()
       {
@@ -788,10 +746,7 @@ namespace Maneubo
         }
       }
 
-      public override void MouseDragEnd(MouseDragEventArgs e)
-      {
-        dragMode = DragMode.None;
-      }
+      public override void MouseDragEnd(MouseDragEventArgs e) => dragMode = DragMode.None;
 
       public override bool MouseDragStart(MouseEventArgs e)
       {
@@ -825,10 +780,7 @@ namespace Maneubo
 
       public override void MouseMove(MouseEventArgs e)
       {
-        if(dragMode != DragMode.None)
-        {
-          Board.StatusText = ManeuveringBoard.GetAngleString(velocity.Angle) + ", " + Board.GetSpeedString(velocity.Length);
-        }
+        if(dragMode != DragMode.None) Board.StatusText = GetAngleString(velocity.Angle) + ", " + Board.GetSpeedString(velocity.Length);
       }
 
       public override void RenderDecorations(Graphics graphics)
@@ -839,15 +791,14 @@ namespace Maneubo
           PointF start = Board.GetRenderPoint(position + velocity*minTime);
           Vector2 crossTick = velocity.CrossVector.GetNormal(6);
 
-          List<float> errors = new List<float>(12);
+          var errors = new List<float>(12);
           int selectedObservation = -1;
 
           foreach(Observation observation in unit.Children.OfType<Observation>().OrderBy(o => o.Time))
           {
             if(Board.SelectedShape == observation) selectedObservation = errors.Count;
             BoardPoint unitPoint = position + velocity*observation.Time.TotalSeconds;
-            BearingObservation bearing = observation as BearingObservation;
-            if(bearing != null)
+            if(observation is BearingObservation bearing)
             {
               PointF point = Board.GetRenderPoint(unitPoint);
               graphics.DrawLine(Board.tmaPen, point.X-(float)crossTick.X, point.Y+(float)crossTick.Y,
@@ -864,8 +815,7 @@ namespace Maneubo
             }
             else
             {
-              PointObservation point = observation as PointObservation;
-              errors.Add((float)unitPoint.DistanceTo(point.Position));
+              errors.Add((float)unitPoint.DistanceTo(((PointObservation)observation).Position));
             }
           }
 
@@ -880,7 +830,7 @@ namespace Maneubo
           {
             const int StackWidth = 101, MinStackHeight = 128;
 
-            SysRect dotStackRect = new SysRect(0, 0, StackWidth, Math.Max(MinStackHeight, errors.Count*6 + Board.Font.Height + 8));
+            var dotStackRect = new SysRect(0, 0, StackWidth, Math.Max(MinStackHeight, errors.Count*6 + Board.Font.Height + 8));
             using(Brush dimBrush = new SolidBrush(Color.FromArgb(192, 0, 0, 0))) graphics.FillRectangle(dimBrush, dotStackRect);
 
             // the base error is 20 meters per pixel, but if the average error magnitude is greater than the available space, scale down by
@@ -958,20 +908,13 @@ namespace Maneubo
       {
         public CourseConstraint(int arity, double min, double max)
         {
-          this.arity = arity;
+          this.Arity = arity;
           this.min   = min;
           this.max   = max;
         }
 
-        public int Arity
-        {
-          get { return arity; }
-        }
-
-        public int DerivativeCount
-        {
-          get { return 1; }
-        }
+        public int Arity { get; }
+        public int DerivativeCount => 1;
 
         public double Evaluate(params double[] x)
         {
@@ -1003,22 +946,15 @@ namespace Maneubo
         }
 
         readonly double min, max;
-        readonly int arity;
       }
       #endregion
 
       #region ErrorFunctionBase
       abstract class ErrorFunctionBase
       {
-        public ErrorFunctionBase(UnitShape unit)
-        {
-          this.unit = unit;
-        }
+        public ErrorFunctionBase(UnitShape unit) => this.unit = unit;
 
-        public int DerivativeCount
-        {
-          get { return 1; }
-        }
+        public int DerivativeCount => 1;
 
         protected double Evaluate(BoardPoint unitStart, Vector2 velocity)
         {
@@ -1027,8 +963,7 @@ namespace Maneubo
           foreach(Observation observation in unit.Children.OfType<Observation>())
           {
             BoardPoint unitPoint = unitStart + velocity*observation.Time.TotalSeconds;
-            BearingObservation bearing = observation as BearingObservation;
-            if(bearing != null)
+            if(observation is BearingObservation bearing)
             {
               BoardPoint observerPoint = bearing.GetEffectiveObserverPosition();
               Vector2 bearingVector = bearing.Vector, obsVector = unitPoint - observerPoint;
@@ -1061,20 +996,12 @@ namespace Maneubo
       /// <summary>Evalutes the amount of error in a TMA solution when the course is locked.</summary>
       sealed class CourseErrorFunction : ErrorFunctionBase, IDifferentiableMDFunction
       {
-        public CourseErrorFunction(UnitShape unit, Vector2 velocity) : base(unit)
-        {
-          normalVelocity = velocity.Normal; // normalize the velocity vector so we can multiply it by a speed parameter
-        }
+        // normalize the velocity vector so we can multiply it by a speed parameter
+        public CourseErrorFunction(UnitShape unit, Vector2 velocity) : base(unit) => normalVelocity = velocity.Normal;
 
-        public int Arity
-        {
-          get { return 3; }
-        }
+        public int Arity => 3;
 
-        public double Evaluate(params double[] x)
-        {
-          return Evaluate(new BoardPoint(x[0], x[1]), normalVelocity*x[2]);
-        }
+        public double Evaluate(params double[] x) => Evaluate(new BoardPoint(x[0], x[1]), normalVelocity*x[2]);
 
         public void EvaluateGradient(double[] x, double[] gradient)
         {
@@ -1085,8 +1012,7 @@ namespace Maneubo
             double time = observation.Time.TotalSeconds;
             Vector2 timeVelocity = normalVelocity*time;
             BoardPoint unitPoint = unitStart + timeVelocity*speed;
-            BearingObservation bearing = observation as BearingObservation;
-            if(bearing != null)
+            if(observation is BearingObservation bearing)
             {
               BoardPoint observerPoint = bearing.GetEffectiveObserverPosition();
               Vector2 bearingVector = bearing.Vector, obsVector = unitPoint - observerPoint;
@@ -1130,28 +1056,21 @@ namespace Maneubo
       {
         public ErrorFunction(UnitShape unit) : base(unit) { }
 
-        public int Arity
-        {
-          get { return 4; }
-        }
+        public int Arity => 4;
 
-        public double Evaluate(params double[] x)
-        {
-          return Evaluate(new BoardPoint(x[0], x[1]), new Vector2(x[2], x[3]));
-        }
+        public double Evaluate(params double[] x) => Evaluate(new BoardPoint(x[0], x[1]), new Vector2(x[2], x[3]));
 
         public void EvaluateGradient(double[] x, double[] gradient)
         {
-          BoardPoint unitStart = new BoardPoint(x[0], x[1]);
-          Vector2 velocity = new Vector2(x[2], x[3]);
+          var unitStart = new BoardPoint(x[0], x[1]);
+          var velocity = new Vector2(x[2], x[3]);
 
           double xDeriv=0, yDeriv=0, vxDeriv=0, vyDeriv=0;
           foreach(Observation observation in unit.Children.OfType<Observation>())
           {
             double time = observation.Time.TotalSeconds;
             BoardPoint unitPoint = unitStart + velocity*time;
-            BearingObservation bearing = observation as BearingObservation;
-            if(bearing != null)
+            if(observation is BearingObservation bearing)
             {
               BoardPoint observerPoint = bearing.GetEffectiveObserverPosition();
               Vector2 bearingVector = bearing.Vector, obsVector = unitPoint - observerPoint;
@@ -1194,20 +1113,10 @@ namespace Maneubo
       #region NormalizationConstraint
       sealed class NormalizationConstraint : IDifferentiableMDFunction
       {
-        public NormalizationConstraint(int arity)
-        {
-          this.arity = arity;
-        }
+        public NormalizationConstraint(int arity) => Arity = arity;
 
-        public int Arity
-        {
-          get { return arity; }
-        }
-
-        public int DerivativeCount
-        {
-          get { return 1; }
-        }
+        public int Arity { get; }
+        public int DerivativeCount => 1;
 
         public double Evaluate(params double[] x)
         {
@@ -1230,8 +1139,6 @@ namespace Maneubo
             gradient[3] = -2*vy;
           }
         }
-
-        readonly int arity;
       }
       #endregion
 
@@ -1240,19 +1147,13 @@ namespace Maneubo
       {
         public RangeErrorFunction(UnitShape unit) : base(unit) { }
 
-        public int Arity
-        {
-          get { return 5; }
-        }
+        public int Arity => 5;
 
-        public double Evaluate(params double[] x)
-        {
-          return Evaluate(new BoardPoint(x[0], x[1]), new Vector2(x[2], x[3])*x[4]);
-        }
+        public double Evaluate(params double[] x) => Evaluate(new BoardPoint(x[0], x[1]), new Vector2(x[2], x[3])*x[4]);
 
         public void EvaluateGradient(double[] x, double[] gradient)
         {
-          BoardPoint unitStart = new BoardPoint(x[0], x[1]);
+          var unitStart = new BoardPoint(x[0], x[1]);
           Vector2 normalVelocity = new Vector2(x[2], x[3]), velocity = normalVelocity*x[4];
           double speed=x[4], xDeriv=0, yDeriv=0, vxDeriv=0, vyDeriv=0, speedDeriv=0;
           foreach(Observation observation in unit.Children.OfType<Observation>())
@@ -1260,8 +1161,7 @@ namespace Maneubo
             double time = observation.Time.TotalSeconds;
             Vector2 timeVelocity = velocity*time;
             BoardPoint unitPoint = unitStart + timeVelocity;
-            BearingObservation bearing = observation as BearingObservation;
-            if(bearing != null)
+            if(observation is BearingObservation bearing)
             {
               BoardPoint observerPoint = bearing.GetEffectiveObserverPosition();
               Vector2 bearingVector = bearing.Vector, obsVector = unitPoint - observerPoint;
@@ -1309,24 +1209,15 @@ namespace Maneubo
       /// <summary>Evalutes the amount of error in a TMA solution when the speed is locked.</summary>
       sealed class SpeedErrorFunction : ErrorFunctionBase, IDifferentiableMDFunction
       {
-        public SpeedErrorFunction(UnitShape unit, double speed) : base(unit)
-        {
-          this.speed = speed;
-        }
+        public SpeedErrorFunction(UnitShape unit, double speed) : base(unit) => this.speed = speed;
 
-        public int Arity
-        {
-          get { return 4; }
-        }
+        public int Arity => 4;
 
-        public double Evaluate(params double[] x)
-        {
-          return Evaluate(new BoardPoint(x[0], x[1]), new Vector2(x[2], x[3])*speed);
-        }
+        public double Evaluate(params double[] x) => Evaluate(new BoardPoint(x[0], x[1]), new Vector2(x[2], x[3])*speed);
 
         public void EvaluateGradient(double[] x, double[] gradient)
         {
-          BoardPoint unitStart = new BoardPoint(x[0], x[1]);
+          var unitStart = new BoardPoint(x[0], x[1]);
           Vector2 velocity = new Vector2(x[2], x[3]) * speed;
           double xDeriv=0, yDeriv=0, vxDeriv=0, vyDeriv=0;
           foreach(Observation observation in unit.Children.OfType<Observation>())
@@ -1334,8 +1225,7 @@ namespace Maneubo
             double time = observation.Time.TotalSeconds;
             Vector2 timeVelocity = velocity*time;
             BoardPoint unitPoint = unitStart + timeVelocity;
-            BearingObservation bearing = observation as BearingObservation;
-            if(bearing != null)
+            if(observation is BearingObservation bearing)
             {
               BoardPoint observerPoint = bearing.GetEffectiveObserverPosition();
               Vector2 bearingVector = bearing.Vector, obsVector = unitPoint - observerPoint;
@@ -1381,30 +1271,20 @@ namespace Maneubo
       /// <summary>Evalutes the amount of error in a TMA solution when both speed and course are locked (i.e. when the velocity is known).</summary>
       sealed class VelocityErrorFunction : ErrorFunctionBase, IDifferentiableMDFunction
       {
-        public VelocityErrorFunction(UnitShape unit, Vector2 velocity) : base(unit)
-        {
-          this.velocity = velocity;
-        }
+        public VelocityErrorFunction(UnitShape unit, Vector2 velocity) : base(unit) => this.velocity = velocity;
 
-        public int Arity
-        {
-          get { return 2; }
-        }
+        public int Arity => 2;
 
-        public double Evaluate(params double[] x)
-        {
-          return Evaluate(new BoardPoint(x[0], x[1]), velocity);
-        }
+        public double Evaluate(params double[] x) => Evaluate(new BoardPoint(x[0], x[1]), velocity);
 
         public void EvaluateGradient(double[] x, double[] gradient)
         {
           double xDeriv=0, yDeriv=0;
-          BoardPoint unitStart = new BoardPoint(x[0], x[1]);
+          var unitStart = new BoardPoint(x[0], x[1]);
           foreach(Observation observation in unit.Children.OfType<Observation>())
           {
             BoardPoint unitPoint = unitStart + velocity*observation.Time.TotalSeconds;
-            BearingObservation bearing = observation as BearingObservation;
-            if(bearing != null)
+            if(observation is BearingObservation bearing)
             {
               BoardPoint observerPoint = bearing.GetEffectiveObserverPosition();
               Vector2 bearingVector = bearing.Vector, obsVector = unitPoint - observerPoint;
@@ -1465,14 +1345,11 @@ namespace Maneubo
         return to;
       }
 
-      UnitShape GetSelectedUnit()
-      {
-        return GetSelectedUnit(Board.SelectedShape);
-      }
+      UnitShape GetSelectedUnit() => GetSelectedUnit(Board.SelectedShape);
 
       UnitShape GetSelectedUnit(Shape shape)
       {
-        UnitShape unit = shape as UnitShape;
+        var unit = shape as UnitShape;
         if(unit == null && shape != null) unit = shape.Parent as UnitShape;
         return unit;
       }
@@ -1584,7 +1461,7 @@ namespace Maneubo
         point[2] = normalVelocity.X;
         point[3] = normalVelocity.Y;
 
-        ConstrainedMinimizer minimizer = new ConstrainedMinimizer(new RangeErrorFunction(GetSelectedUnit()));
+        var minimizer = new ConstrainedMinimizer(new RangeErrorFunction(GetSelectedUnit()));
 
         // if there's a speed range, set it. otherwise, if there's an exact speed, set that. otherwise, just enforce that it's non-negative
         if(speedRange) minimizer.SetBounds(4, minSpeed ?? 0, maxSpeed ?? double.PositiveInfinity);
@@ -1645,7 +1522,7 @@ namespace Maneubo
             else
             {
               double[] point = new double[] { position.X, position.Y, velocity.Normal.X, velocity.Normal.Y };
-              ConstrainedMinimizer minimizer = new ConstrainedMinimizer(new SpeedErrorFunction(GetSelectedUnit(), velocity.Length));
+              var minimizer = new ConstrainedMinimizer(new SpeedErrorFunction(GetSelectedUnit(), velocity.Length));
               minimizer.AddConstraint(new NormalizationConstraint(4)); // constrain the course vector to be normalized
               try { minimizer.Minimize(point); }
               catch(ArgumentException) { } // the problem became ill-behaved, but a good solution has probably been found anyway, so use it
@@ -1657,7 +1534,7 @@ namespace Maneubo
           else if(form.LockCourse)
           {
             double[] point = new double[] { position.X, position.Y, velocity.Length };
-            ConstrainedMinimizer minimizer = new ConstrainedMinimizer(new CourseErrorFunction(GetSelectedUnit(), velocity));
+            var minimizer = new ConstrainedMinimizer(new CourseErrorFunction(GetSelectedUnit(), velocity));
             minimizer.SetBounds(2, 0, double.PositiveInfinity); // constrain the speed to be non-negative
             try { minimizer.Minimize(point); }
             catch(ArgumentException) { } // the problem became ill-behaved, but a good solution has probably been found anyway, so use it
@@ -1706,7 +1583,7 @@ namespace Maneubo
     [Browsable(false), DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
     public BoardPoint BackgroundImageCenter
     {
-      get { return _bgCenter; }
+      get => _bgCenter;
       set
       {
         if(value != BackgroundImageCenter)
@@ -1721,7 +1598,7 @@ namespace Maneubo
     [Browsable(false), DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
     public double BackgroundImageScale
     {
-      get { return _bgScale; }
+      get => _bgScale;
       set
       {
         if(value != BackgroundImageScale)
@@ -1737,7 +1614,7 @@ namespace Maneubo
     [Browsable(false), DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
     public Color ObservationColor
     {
-      get { return _observationColor; }
+      get => _observationColor;
       set
       {
         if(value != ObservationColor)
@@ -1754,7 +1631,7 @@ namespace Maneubo
     [Browsable(false), DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
     public Color ReferenceColor
     {
-      get { return _referenceColor; }
+      get => _referenceColor;
       set
       {
         if(value != ReferenceColor)
@@ -1762,6 +1639,7 @@ namespace Maneubo
           _referenceColor = value;
           referencePen.Color   = value;
           referenceBrush.Color = value;
+          UpdateSelRefColor();
           WasChanged = true;
           Invalidate();
         }
@@ -1771,7 +1649,7 @@ namespace Maneubo
     [Browsable(false), DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
     public Color ScaleColor1
     {
-      get { return _scaleColor1; }
+      get => _scaleColor1;
       set
       {
         if(value != ScaleColor1)
@@ -1787,7 +1665,7 @@ namespace Maneubo
     [Browsable(false), DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
     public Color ScaleColor2
     {
-      get { return _scaleColor2; }
+      get => _scaleColor2;
       set
       {
         if(value != ScaleColor2)
@@ -1803,15 +1681,16 @@ namespace Maneubo
     [Browsable(false), DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
     public Color SelectedColor
     {
-      get { return _selectedColor; }
+      get => _selectedColor;
       set
       {
         if(value != SelectedColor)
         {
-          _selectedColor = value;
+          _selectedColor      = value;
           selectedPen.Color   = value;
           selectedBrush.Color = value;
           selectedObservationPen.Color = value;
+          UpdateSelRefColor();
           WasChanged = true;
           Invalidate();
         }
@@ -1821,14 +1700,14 @@ namespace Maneubo
     [Browsable(false), DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
     public Color TMAColor
     {
-      get { return _tmaColor; }
+      get => _tmaColor;
       set
       {
         if(value != TMAColor)
         {
-          _tmaColor = value;
+          _tmaColor    = value;
           tmaPen.Color = value;
-          WasChanged = true;
+          WasChanged   = true;
           Invalidate();
         }
       }
@@ -1837,12 +1716,12 @@ namespace Maneubo
     [Browsable(false), DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
     public Color UnselectedColor
     {
-      get { return _unselectedColor; }
+      get => _unselectedColor;
       set
       {
         if(value != UnselectedColor)
         {
-          _unselectedColor = value;
+          _unselectedColor  = value;
           normalPen.Color   = value;
           normalBrush.Color = value;
           WasChanged = true;
@@ -1854,7 +1733,7 @@ namespace Maneubo
     [Browsable(false), DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
     public string StatusText
     {
-      get { return _statusText; }
+      get => _statusText;
       private set
       {
         if(value == null) value = string.Empty;
@@ -1869,7 +1748,7 @@ namespace Maneubo
     [Browsable(false), DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
     public BoardPoint Center
     {
-      get { return _center; }
+      get => _center;
       set
       {
         if(value != Center)
@@ -1883,7 +1762,7 @@ namespace Maneubo
     [Browsable(false), DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
     public MapProjection Projection
     {
-      get { return _projection; }
+      get => _projection;
       set
       {
         if(value != Projection)
@@ -1897,7 +1776,7 @@ namespace Maneubo
     [Browsable(false), DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
     public BoardPoint ProjectionCenter
     {
-      get { return _projectionCenter; }
+      get => _projectionCenter;
       set
       {
         if(value != ProjectionCenter)
@@ -1911,7 +1790,7 @@ namespace Maneubo
     [Browsable(false), DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
     public UnitShape ReferenceShape
     {
-      get { return _referenceShape; }
+      get => _referenceShape;
       set
       {
         if(value != ReferenceShape)
@@ -1931,7 +1810,7 @@ namespace Maneubo
     [Browsable(false), DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
     public Shape SelectedShape
     {
-      get { return _selectedShape; }
+      get => _selectedShape;
       set
       {
         if(value != SelectedShape)
@@ -1948,7 +1827,7 @@ namespace Maneubo
     [Browsable(false), DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
     public Tool SelectedTool
     {
-      get { return _currentTool; }
+      get => _currentTool;
       set
       {
         if(value != SelectedTool)
@@ -1968,7 +1847,7 @@ namespace Maneubo
     [Browsable(false), DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
     public bool ShowAllObservations
     {
-      get { return _showAllObservations; }
+      get => _showAllObservations;
       set
       {
         if(value != ShowAllObservations)
@@ -1983,7 +1862,7 @@ namespace Maneubo
     [Browsable(false), DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
     public UnitSystem UnitSystem
     {
-      get { return _unitSystem; }
+      get => _unitSystem;
       set
       {
         if(value != UnitSystem)
@@ -2001,7 +1880,7 @@ namespace Maneubo
     [Browsable(false), DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
     public double ZoomFactor
     {
-      get { return _zoom; }
+      get => _zoom;
       set
       {
         if(value != ZoomFactor)
@@ -2017,13 +1896,15 @@ namespace Maneubo
     {
       foreach(UnitShape unit in RootShapes.OfType<UnitShape>())
       {
-        if(time > TimeSpan.Zero) // if the unit's implied waypoint (from its position) would be lost (because it'd go around a corner),
-        {                        // add a new waypoint at its current position
-          Waypoint firstWaypoint = unit.Children.OfType<Waypoint>().FirstOrDefault();
-          if(firstWaypoint != null && firstWaypoint.Time > TimeSpan.Zero && time >= firstWaypoint.Time)
-          {
-            unit.Children.Insert(unit.Children.IndexOf(firstWaypoint), new Waypoint() { Position = unit.Position });
-          }
+        // if the unit's implied waypoint would be lost, add a new waypoint at its current position
+        Waypoint previous, waypoint = unit.GetApplicableWaypoint(TimeSpan.Zero, out previous, wantLine: true);
+        if(previous != null ? // if we have two waypoints...
+          Math.Abs(new Line2(previous.Position, waypoint.Position).DistanceTo(unit.Position)) > 1 : // ensure we're on the same line
+          waypoint != null && waypoint.Time == time) // otherwise, there's only one so ensure we're not moving on top of it
+        {
+          int index = unit.Children.IndexOf(waypoint) +
+            (waypoint.Time <= TimeSpan.Zero ? 1 : previous == null || previous.Time <= TimeSpan.Zero ? 0 : -1);
+          unit.Children.Insert(index, new Waypoint() { Position = unit.Position });
         }
 
         unit.Position = unit.GetPositionAt(time);
@@ -2038,17 +1919,14 @@ namespace Maneubo
     public void ApplyIntercept(UnitShape unit, InterceptForm form) // TODO: it's ugly to take an InterceptForm, but i'm out of time...
     {
       // delete existing waypoints
-      for(int i=unit.Children.Count-1; i >= 0; i--)
+      for(int i = unit.Children.Count-1; i >= 0; i--)
       {
-        Waypoint waypoint = unit.Children[i] as Waypoint;
-        if(waypoint != null) unit.Children.RemoveAt(i);
+        if(unit.Children[i] is Waypoint waypoint) unit.Children.RemoveAt(i);
       }
 
       if(form.CreateWaypoints)
       {
-        Waypoint waypoint = new Waypoint();
-        waypoint.Position = form.InterceptPoint;
-        waypoint.Time     = TimeSpan.FromSeconds(Math.Max(1, form.Time));
+        var waypoint = new Waypoint() { Position = form.InterceptPoint, Time = TimeSpan.FromSeconds(Math.Max(1, form.Time)) };
         unit.Children.Add(waypoint);
       }
       else
@@ -2081,15 +1959,10 @@ namespace Maneubo
       }
     }
 
-    public BoardPoint GetBoardPoint(SysPoint clientPoint)
-    {
-      return new BoardPoint((clientPoint.X-Width*0.5)/ZoomFactor + Center.X, ((Height*0.5-clientPoint.Y)/ZoomFactor + Center.Y));
-    }
+    public BoardPoint GetBoardPoint(SysPoint clientPoint) =>
+      new BoardPoint((clientPoint.X-Width*0.5)/ZoomFactor + Center.X, ((Height*0.5-clientPoint.Y)/ZoomFactor + Center.Y));
 
-    public Vector2 GetBoardSize(Size size)
-    {
-      return new Vector2(size.Width/ZoomFactor, -size.Height/ZoomFactor);
-    }
+    public Vector2 GetBoardSize(Size size) => new Vector2(size.Width/ZoomFactor, -size.Height/ZoomFactor);
 
     public SysPoint GetClientPoint(BoardPoint point)
     {
@@ -2114,25 +1987,18 @@ namespace Maneubo
     public BoardPoint GetGeographicalPoint(BoardPoint point)
     {
       if(Projection == null) throw new InvalidOperationException();
-      double longitude, latitude;
-      Projection.Unproject(point.X - ProjectionCenter.X, ProjectionCenter.Y - point.Y, out longitude, out latitude);
+      Projection.Unproject(point.X - ProjectionCenter.X, ProjectionCenter.Y - point.Y, out double longitude, out double latitude);
       return new BoardPoint(longitude, latitude);
     }
 
-    public PointF GetRenderPoint(BoardPoint point)
-    {
-      return new PointF((float)((point.X-Center.X)*ZoomFactor + Width*0.5), (float)(Height*0.5 - (point.Y-Center.Y)*ZoomFactor));
-    }
+    public PointF GetRenderPoint(BoardPoint point) =>
+      new PointF((float)((point.X-Center.X)*ZoomFactor + Width*0.5), (float)(Height*0.5 - (point.Y-Center.Y)*ZoomFactor));
 
-    public Shape GetShapeUnderCursor(SysPoint point)
-    {
-      Handle handle;
-      return GetShapeUnderCursor(point, out handle);
-    }
+    public Shape GetShapeUnderCursor(SysPoint point) => GetShapeUnderCursor(point, out Handle _);
 
     public Shape GetShapeUnderCursor(SysPoint point, out Handle handle)
     {
-      List<KeyValuePair<Shape, KeyValuePair<double, Handle>>> shapes = new List<KeyValuePair<Shape, KeyValuePair<double, Handle>>>();
+      var shapes = new List<KeyValuePair<Shape, KeyValuePair<double, Handle>>>();
       foreach(Shape shape in EnumerateShapes())
       {
         KeyValuePair<double,Handle> distance = shape.GetSelectionDistance(point);
@@ -2195,8 +2061,8 @@ namespace Maneubo
             UnitSystem       = ParseUnitSystem(reader.GetAttribute("unitSystem"), UnitSystem.NauticalMetric);
             Projection       = null;
 
-            Dictionary<Observation, string> observers = new Dictionary<Observation, string>();
-            Dictionary<string, UnitShape> unitsById = new Dictionary<string, UnitShape>();
+            var observers = new Dictionary<Observation, string>();
+            var unitsById = new Dictionary<string, UnitShape>();
             while(reader.Read() && reader.NodeType == XmlNodeType.Element)
             {
               switch(reader.LocalName)
@@ -2253,8 +2119,7 @@ namespace Maneubo
 
             foreach(KeyValuePair<Observation, string> pair in observers)
             {
-              UnitShape observer;
-              if(pair.Value == null || !unitsById.TryGetValue(pair.Value, out observer))
+              if(pair.Value == null || !unitsById.TryGetValue(pair.Value, out UnitShape observer))
               {
                 throw new InvalidDataException("Unit with ID " + (pair.Value == null ? "NULL" : pair.Value) + " does not exist.");
               }
@@ -2275,8 +2140,8 @@ namespace Maneubo
 
     public void Save(string fileName)
     {
-      XmlWriterSettings settings = new XmlWriterSettings() { Indent = true, IndentChars = "\t", NewLineOnAttributes = false };
-      using(XmlWriter writer = XmlWriter.Create(fileName, settings))
+      var settings = new XmlWriterSettings() { Indent = true, IndentChars = "\t", NewLineOnAttributes = false };
+      using(var writer = XmlWriter.Create(fileName, settings))
       {
         writer.WriteStartElement("m", "moboard", "http://www.adammil.net/Maneubo/moboard");
         writer.WriteAttributeString("version", "1");
@@ -2313,9 +2178,8 @@ namespace Maneubo
         if(RootShapes.Count != 0)
         {
           writer.WriteStartElement("shapes");
-          UnitShape selectedUnit = SelectedShape as UnitShape;
           if(ReferenceShape != null) writer.WriteAttributeString("referenceUnit", ReferenceShape.GetXmlId());
-          if(selectedUnit != null) writer.WriteAttributeString("selectedUnit", selectedUnit.GetXmlId());
+          if(SelectedShape is UnitShape selectedUnit) writer.WriteAttributeString("selectedUnit", selectedUnit.GetXmlId());
           foreach(Shape shape in RootShapes) shape.Save(writer);
           writer.WriteEndElement();
         }
@@ -2331,11 +2195,11 @@ namespace Maneubo
           writer.WriteAttributeString("centerPosition", FormatXmlVector(BackgroundImageCenter));
           writer.WriteAttribute("zoom", BackgroundImageScale);
 
-          using(MemoryStream bgStream = new MemoryStream(128*1024))
+          using(var bgStream = new MemoryStream(128*1024))
           {
             try
             {
-              using(GZipStream gzip = new GZipStream(bgStream, CompressionMode.Compress, true))
+              using(var gzip = new GZipStream(bgStream, CompressionMode.Compress, true))
               {
                 BackgroundImage.Save(gzip, BackgroundImage.RawFormat);
               }
@@ -2348,7 +2212,7 @@ namespace Maneubo
               {
                 BackgroundImage.Save(tempFile);
                 using(Stream imageStream = File.OpenRead(tempFile))
-                using(GZipStream gzip = new GZipStream(bgStream, CompressionMode.Compress, true))
+                using(var gzip = new GZipStream(bgStream, CompressionMode.Compress, true))
                 {
                   imageStream.CopyTo(gzip);
                 }
@@ -2379,30 +2243,11 @@ namespace Maneubo
     public readonly SetupMapProjectionClass SetupProjectionTool;
     public readonly TMAToolClass TMATool;
 
-    public static double AngleBetween(BoardPoint from, BoardPoint to)
-    {
-      return SwapBearing(Math2D.AngleBetween(from, to));
-    }
-
-    public static double ConvertFromUnit(double length, LengthUnit fromUnit)
-    {
-      return length * conversionsToMeters[(int)fromUnit];
-    }
-
-    public static double ConvertFromUnit(double speed, SpeedUnit fromUnit)
-    {
-      return speed * conversionsToMPS[(int)fromUnit];
-    }
-
-    public static double ConvertToUnit(double meters, LengthUnit toUnit)
-    {
-      return meters / conversionsToMeters[(int)toUnit];
-    }
-
-    public static double ConvertToUnit(double metersPerSecond, SpeedUnit toUnit)
-    {
-      return metersPerSecond / conversionsToMPS[(int)toUnit];
-    }
+    public static double AngleBetween(BoardPoint from, BoardPoint to) => SwapBearing(Math2D.AngleBetween(from, to));
+    public static double ConvertFromUnit(double length, LengthUnit fromUnit) => length * conversionsToMeters[(int)fromUnit];
+    public static double ConvertFromUnit(double speed, SpeedUnit fromUnit) => speed * conversionsToMPS[(int)fromUnit];
+    public static double ConvertToUnit(double meters, LengthUnit toUnit) => meters / conversionsToMeters[(int)toUnit];
+    public static double ConvertToUnit(double metersPerSecond, SpeedUnit toUnit) => metersPerSecond / conversionsToMPS[(int)toUnit];
 
     public static LengthUnit GetAppropriateLengthUnit(double meters, UnitSystem system)
     {
@@ -2411,13 +2256,13 @@ namespace Maneubo
       {
         case UnitSystem.Imperial:
           unit = meters >= conversionsToMeters[(int)LengthUnit.Mile] ?
-              LengthUnit.Mile : meters >= conversionsToMeters[(int)LengthUnit.Yard] ? LengthUnit.Yard : LengthUnit.Foot;
+            LengthUnit.Mile : meters >= conversionsToMeters[(int)LengthUnit.Yard] ? LengthUnit.Yard : LengthUnit.Foot;
           break;
         case UnitSystem.Metric:
           unit = meters >= 1000 ? LengthUnit.Kilometer : LengthUnit.Meter; break;
         case UnitSystem.NauticalImperial:
           unit = meters >= conversionsToMeters[(int)LengthUnit.NauticalMile]/10 ?
-              LengthUnit.NauticalMile : meters >= conversionsToMeters[(int)LengthUnit.Yard] ? LengthUnit.Yard : LengthUnit.Foot;
+            LengthUnit.NauticalMile : meters >= conversionsToMeters[(int)LengthUnit.Yard] ? LengthUnit.Yard : LengthUnit.Foot;
           break;
         case UnitSystem.NauticalMetric:
           unit = meters >= conversionsToMeters[(int)LengthUnit.NauticalMile]/10 ? LengthUnit.NauticalMile : LengthUnit.Meter;
@@ -2440,10 +2285,7 @@ namespace Maneubo
       return unit;
     }
 
-    public static string GetAngleString(double nauticalAngle)
-    {
-      return GetAngleString(nauticalAngle, false);
-    }
+    public static string GetAngleString(double nauticalAngle) => GetAngleString(nauticalAngle, false);
 
     public static string GetAngleString(double nauticalAngle, bool inDegrees)
     {
@@ -2453,10 +2295,7 @@ namespace Maneubo
       return nauticalAngle.ToString("0.##") + "°";
     }
 
-    public static SpeedUnit GetAppropriateSpeedUnit(double metersPerSecond, UnitSystem system)
-    {
-      return GetAppropriateSpeedUnit(system);
-    }
+    public static SpeedUnit GetAppropriateSpeedUnit(double metersPerSecond, UnitSystem system) => GetAppropriateSpeedUnit(system);
 
     public static string GetDistanceString(double meters, LengthUnit unit)
     {
@@ -2464,10 +2303,8 @@ namespace Maneubo
       return GetRoundedString(ConvertToUnit(meters, unit)) + " " + lengthAbbreviations[(int)unit];
     }
 
-    public static string GetDistanceString(double meters, UnitSystem system)
-    {
-      return GetDistanceString(meters, GetAppropriateLengthUnit(meters, system));
-    }
+    public static string GetDistanceString(double meters, UnitSystem system) =>
+      GetDistanceString(meters, GetAppropriateLengthUnit(meters, system));
 
     public static string GetSpeedString(double metersPerSecond, SpeedUnit unit)
     {
@@ -2475,10 +2312,8 @@ namespace Maneubo
       return GetRoundedString(ConvertToUnit(metersPerSecond, unit)) + " " + speedAbbreviations[(int)unit];
     }
 
-    public static string GetSpeedString(double metersPerSecond, UnitSystem system)
-    {
-      return GetSpeedString(metersPerSecond, GetAppropriateSpeedUnit(metersPerSecond, system));
-    }
+    public static string GetSpeedString(double metersPerSecond, UnitSystem system) =>
+      GetSpeedString(metersPerSecond, GetAppropriateSpeedUnit(metersPerSecond, system));
 
     public static string GetTimeString(TimeSpan time)
     {
@@ -2493,12 +2328,14 @@ namespace Maneubo
       Utility.Dispose(ref normalPen);
       Utility.Dispose(ref selectedPen);
       Utility.Dispose(ref referencePen);
+      Utility.Dispose(ref selRefPen);
       Utility.Dispose(ref tmaPen);
       Utility.Dispose(ref observationPen);
       Utility.Dispose(ref selectedObservationPen);
       Utility.Dispose(ref normalBrush);
       Utility.Dispose(ref selectedBrush);
       Utility.Dispose(ref referenceBrush);
+      Utility.Dispose(ref selRefBrush);
       Utility.Dispose(ref observationBrush);
     }
 
@@ -2564,14 +2401,13 @@ namespace Maneubo
           }
           else if(e.Button == MouseButtons.Middle) // middle click sets reference shape
           {
-            UnitShape unit = shape as UnitShape;
-            if(unit != null) ReferenceShape = unit;
+            if(shape is UnitShape unit) ReferenceShape = unit;
           }
           else if(e.Button == MouseButtons.Right) // right click opens a context menu
           {
             SelectedShape = shape;
 
-            ContextMenuStrip menu = new ContextMenuStrip();
+            var menu = new ContextMenuStrip();
             SetShortcut(menu.Items.Add("&Edit shape data", null, (o, ea) => EditShape(shape)), Keys.F2);
             if(!(shape is PositionalDataShape) && ReferenceShape != null && shape.Parent != ReferenceShape &&
                !shape.IsAncestorOf(ReferenceShape, true))
@@ -2673,11 +2509,21 @@ namespace Maneubo
           statusText = GetLatitudeString(lonLat.Y) + ", " + GetLongitudeString(lonLat.X);
         }
 
-        if(ReferenceShape != null)
+        if(ReferenceShape != null && ReferenceShape.Position != cursor)
         {
           double angle = AngleBetween(ReferenceShape.Position, cursor);
           statusText = (statusText == null ? null : statusText + "; ") +
-                       ManeuveringBoard.GetAngleString(angle) + ", " + GetDistanceString((cursor-ReferenceShape.Position).Length);
+                       GetAngleString(angle) + ", " + GetDistanceString((cursor-ReferenceShape.Position).Length);
+        }
+
+        if(SelectedShape is UnitShape unit)
+        {
+          Vector2 velocity = unit.GetEffectiveVelocity();
+          if(velocity != Vector2.Zero)
+          {
+            statusText = (statusText == null ? null : statusText + "; ") +
+              "Selected: " + GetAngleString(SwapBearing(velocity.Angle)) + " at " + GetSpeedString(velocity.Length);
+          }
         }
       }
 
@@ -2706,7 +2552,7 @@ namespace Maneubo
     {
       base.OnPaint(e);
 
-      using(Brush brush = new SolidBrush(BackColor)) e.Graphics.FillRectangle(brush, e.ClipRectangle);
+      using(var brush = new SolidBrush(BackColor)) e.Graphics.FillRectangle(brush, e.ClipRectangle);
 
       e.Graphics.PageUnit           = GraphicsUnit.Pixel;
       e.Graphics.SmoothingMode      = SmoothingMode.HighQuality;
@@ -2763,25 +2609,10 @@ namespace Maneubo
 
     internal const int VectorTime = 360; // the displayed length of motion vectors, in seconds
 
-    internal string GetDistanceString(double meters)
-    {
-      return GetDistanceString(meters, UnitSystem);
-    }
-
-    internal static string GetLatitudeString(double value)
-    {
-      return GetLonLatString(value, "N", "S");
-    }
-
-    internal static string GetLongitudeString(double value)
-    {
-      return GetLonLatString(value, "W", "E");
-    }
-
-    internal static string GetRoundedString(double value)
-    {
-      return GetRoundedString(value, 2);
-    }
+    internal string GetDistanceString(double meters) => GetDistanceString(meters, UnitSystem);
+    internal static string GetLatitudeString(double value) => GetLonLatString(value, "N", "S");
+    internal static string GetLongitudeString(double value) => GetLonLatString(value, "W", "E");
+    internal static string GetRoundedString(double value) => GetRoundedString(value, 2);
 
     internal static string GetRoundedString(double value, int decimals)
     {
@@ -2792,35 +2623,20 @@ namespace Maneubo
       return value.ToString("0." + new string('#', decimals));
     }
 
-    internal string GetSpeedString(double metersPerSecond)
-    {
-      return GetSpeedString(metersPerSecond, UnitSystem);
-    }
+    internal string GetSpeedString(double metersPerSecond) => GetSpeedString(metersPerSecond, UnitSystem);
 
-    internal static string FormatXmlVector(BoardPoint point)
-    {
-      return point.X.ToString("R") + ", " + point.Y.ToString("R");
-    }
-
-    internal static string FormatXmlVector(Vector2 vector)
-    {
-      return vector.X.ToString("R") + ", " + vector.Y.ToString("R");
-    }
-
-    internal static BoardPoint ParseXmlPoint(string pointStr)
-    {
-      return ParseXmlVector(pointStr).ToPoint();
-    }
+    internal static string FormatXmlVector(BoardPoint point) => point.X.ToString("R") + ", " + point.Y.ToString("R");
+    internal static string FormatXmlVector(Vector2 vector) => vector.X.ToString("R") + ", " + vector.Y.ToString("R");
+    internal static BoardPoint ParseXmlPoint(string pointStr) => ParseXmlVector(pointStr).ToPoint();
 
     internal static Vector2 ParseXmlVector(string vectorStr)
     {
       int comma = vectorStr.IndexOf(',');
-      double x, y;
-      if(comma == -1 || !double.TryParse(vectorStr.Substring(0, comma), out x) || !double.TryParse(vectorStr.Substring(comma+1), out y))
+      if(comma == -1 || !double.TryParse(vectorStr.Substring(0, comma), out double x) ||
+         !double.TryParse(vectorStr.Substring(comma+1), out double y))
       {
         throw new InvalidDataException("\"" + vectorStr + "\" does not represent a valid point or vector.");
       }
-
       return new Vector2(x, y);
     }
 
@@ -2842,10 +2658,9 @@ namespace Maneubo
     {
       foreach(UnitShape otherUnit in EnumerateShapes().OfType<UnitShape>())
       {
-        for(int i=otherUnit.Children.Count-1; i >= 0; i--)
+        for(int i = otherUnit.Children.Count-1; i >= 0; i--)
         {
-          Observation observation = otherUnit.Children[i] as Observation;
-          if(observation != null && observation.Observer == unit) otherUnit.Children.RemoveAt(i);
+          if(otherUnit.Children[i] is Observation observation && observation.Observer == unit) otherUnit.Children.RemoveAt(i);
         }
       }
     }
@@ -2885,13 +2700,11 @@ namespace Maneubo
         Shape newSelection = null;
         if(parent != null)
         {
-          PositionalDataShape posData = shape as PositionalDataShape;
-          if(posData != null)
+          if(shape is PositionalDataShape posData)
           {
-            UnitShape observer = posData is Observation ? ((Observation)posData).Observer : null;
-            Predicate<PositionalDataShape> inSameChain = 
-              s => s != null && s.GetType() == shape.GetType() && (!(s is Observation) || ((Observation)s).Observer == observer);
-
+            UnitShape observer = (posData as Observation)?.Observer;
+            bool inSameChain(PositionalDataShape s) =>
+              s != null && s.GetType() == shape.GetType() && (s as Observation)?.Observer == observer;
             if(index < parent.Children.Count)
             {
               posData = parent.Children[index] as PositionalDataShape;
@@ -2919,10 +2732,10 @@ namespace Maneubo
 
     bool EditPositionalData(PositionalDataShape posData)
     {
-      PositionalDataForm form = new PositionalDataForm(posData, UnitSystem);
+      var form = new PositionalDataForm(posData, UnitSystem);
       if(form.ShowDialog() == DialogResult.OK)
       {
-        if(posData is BearingObservation) ((BearingObservation)posData).Bearing = form.Bearing;
+        if(posData is BearingObservation bearing) bearing.Bearing = form.Bearing;
         else posData.Position = form.Position;
         posData.Time = form.Time;
 
@@ -2940,38 +2753,31 @@ namespace Maneubo
     void EditShape(Shape shape)
     {
       if(shape == null) throw new ArgumentNullException();
-      PositionalDataShape observation = shape as PositionalDataShape;
-      if(observation != null)
+      if(shape is PositionalDataShape observation)
       {
         EditPositionalData(observation);
       }
       else
       {
-        ShapeDataForm form = new ShapeDataForm(shape, UnitSystem);
+        var form = new ShapeDataForm(shape, UnitSystem);
         if(form.ShowDialog() == DialogResult.OK)
         {
           shape.Name = form.ShapeName;
-          UnitShape unit = shape as UnitShape;
-          if(unit != null)
+          if(shape is UnitShape unit)
           {
             unit.Direction        = form.Direction;
             unit.Speed            = form.Speed;
             unit.Type             = form.UnitType;
             unit.IsMotionRelative = form.IsMotionRelative;
           }
+          else if(shape is LineShape line)
+          {
+            line.End = line.Start + new Vector2(0, form.ShapeSize).Rotate(-form.Direction);
+          }
           else
           {
-            LineShape line = shape as LineShape;
-            if(line != null)
-            {
-              line.End = line.Start + new Vector2(0, form.ShapeSize).Rotate(-form.Direction);
-            }
-            else
-            {
-              CircleShape circle = shape as CircleShape;
-              if(circle != null) circle.Radius = form.ShapeSize;
-              else throw new NotImplementedException();
-            }
+            if(shape is CircleShape circle) circle.Radius = form.ShapeSize;
+            else throw new NotImplementedException();
           }
 
           OnShapeChanged(shape);
@@ -2998,13 +2804,13 @@ namespace Maneubo
     void OnReferenceShapeChanged(UnitShape previousReference)
     {
       DeselectInvalidTool();
-      if(ReferenceShapeChanged != null) ReferenceShapeChanged(this, EventArgs.Empty);
+      ReferenceShapeChanged?.Invoke(this, EventArgs.Empty);
     }
 
     void OnSelectionChanged(Shape previousSelection)
     {
       DeselectInvalidTool();
-      if(SelectionChanged != null) SelectionChanged(this, EventArgs.Empty);
+      SelectionChanged?.Invoke(this, EventArgs.Empty);
       SelectedTool.SelectionChanged(previousSelection);
     }
 
@@ -3033,19 +2839,22 @@ namespace Maneubo
       WasChanged = true;
     }
 
-    void OnStatusTextChanged()
-    {
-      if(StatusTextChanged != null) StatusTextChanged(this, EventArgs.Empty);
-    }
+    void OnStatusTextChanged() => StatusTextChanged?.Invoke(this, EventArgs.Empty);
 
     void OnToolChanged()
     {
-      if(ToolChanged != null) ToolChanged(this, EventArgs.Empty);
+      ToolChanged?.Invoke(this, EventArgs.Empty);
       Invalidate();
     }
 
-    internal SolidBrush normalBrush, selectedBrush, referenceBrush, observationBrush, scaleBrush1, scaleBrush2;
-    internal Pen normalPen, selectedPen, referencePen, tmaPen, observationPen, selectedObservationPen;
+    void UpdateSelRefColor()
+    {
+      selRefBrush.Color = selRefPen.Color = Color.FromArgb(
+        (SelectedColor.R+ReferenceColor.R+1)/2, (SelectedColor.G+ReferenceColor.G+1)/2, (SelectedColor.B+ReferenceColor.B+1)/2);
+    }
+
+    internal SolidBrush normalBrush, selectedBrush, referenceBrush, selRefBrush, observationBrush, scaleBrush1, scaleBrush2;
+    internal Pen normalPen, selectedPen, referencePen, selRefPen, tmaPen, observationPen, selectedObservationPen;
     Color _observationColor, _referenceColor, _scaleColor1, _scaleColor2, _selectedColor, _tmaColor, _unselectedColor;
     BoardPoint _bgCenter, _center, _projectionCenter, dragStart, dragPoint;
     double _zoom = 1, _bgScale = 1;
@@ -3060,10 +2869,7 @@ namespace Maneubo
     DragMode dragMode;
     bool _showAllObservations;
 
-    static string GetColorString(Color color)
-    {
-      return "#" + color.R.ToString("x2") + color.G.ToString("x2") + color.B.ToString("x2");
-    }
+    static string GetColorString(Color color) => "#" + color.R.ToString("x2") + color.G.ToString("x2") + color.B.ToString("x2");
 
     static string GetLonLatString(double value, string negativeSuffix, string positiveSuffix)
     {
@@ -3113,11 +2919,7 @@ namespace Maneubo
       }
     }
 
-    static void SetShortcut(ToolStripItem item, Keys shortcutKeys)
-    {
-      ToolStripMenuItem menuItem = (ToolStripMenuItem)item;
-      menuItem.ShortcutKeys = shortcutKeys;
-    }
+    static void SetShortcut(ToolStripItem item, Keys shortcutKeys) => ((ToolStripMenuItem)item).ShortcutKeys = shortcutKeys;
 
     // these correspond to the LengthUnit enum (Meter, Kilometer, Foot, Yard, Kiloyard, Mile, NauticalMile)
     static readonly double[] conversionsToMeters = new double[] { 1, 1000, 0.3048, 0.9144, 914.4, 1609.344, 1852 };

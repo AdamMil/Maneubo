@@ -1,4 +1,23 @@
-﻿using System;
+﻿/*
+Maneubo is an application that provides a virtual maneuvering board and target
+motion analysis.
+
+http://www.adammil.net/Maneubo
+Copyright (C) 2011-2020 Adam Milazzo
+
+This program is free software; you can redistribute it and/or
+modify it under the terms of the GNU General Public License
+as published by the Free Software Foundation; either version 2
+of the License, or (at your option) any later version.
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+You should have received a copy of the GNU General Public License
+along with this program; if not, write to the Free Software
+Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+*/
+using System;
 using System.Drawing;
 using System.IO;
 using System.Linq;
@@ -114,7 +133,7 @@ namespace Maneubo
 
     void OpenBoard()
     {
-      OpenFileDialog dialog = new OpenFileDialog();
+      var dialog = new OpenFileDialog();
       dialog.DefaultExt = "vmb";
       dialog.Filter     = "Virtual Maneuvering Boards (*.vmb)|*.vmb|All Files (*.*)|*.*";
       dialog.Title      = "Select the maneuvering board to open.";
@@ -146,7 +165,7 @@ namespace Maneubo
     {
       if(CloseBoard())
       {
-        UnitShape ownShip = new UnitShape() { Name = "Own ship", Type = UnitShapeType.OwnShip };
+        var ownShip = new UnitShape() { Name = "Own ship", Type = UnitShapeType.OwnShip };
         board.Center     = AdamMil.Mathematics.Geometry.Point2.Empty;
         board.ZoomFactor = 1.0/32;
         board.RootShapes.Add(ownShip);
@@ -179,7 +198,7 @@ namespace Maneubo
 
     bool SaveBoardAs()
     {
-      SaveFileDialog dialog = new SaveFileDialog();
+      var dialog = new SaveFileDialog();
       dialog.DefaultExt = "vmb";
       dialog.Filter     = "Virtual Maneuvering Boards (*.vmb)|*.vmb|All Files (*.*)|*.*";
       dialog.Title      = "Where would you like to save this file?";
@@ -195,7 +214,7 @@ namespace Maneubo
 
     bool SetBackgroundImage()
     {
-      BackgroundImageForm form = new BackgroundImageForm();
+      var form = new BackgroundImageForm();
       if(form.ShowDialog() == DialogResult.OK)
       {
         if(board.BackgroundImage == null) // only set the center and scale if there was no background image alread. otherwise, reuse the
@@ -237,15 +256,8 @@ namespace Maneubo
       if(board.SelectedTool == board.SetupBackgroundTool) board.SelectedTool = board.PointerTool;
     }
 
-    void board_ReferenceShapeChanged(object sender, EventArgs e)
-    {
-      tbAddObservation.Enabled = board.ReferenceShape != null;
-    }
-
-    void board_StatusTextChanged(object sender, EventArgs e)
-    {
-      lblToolStatus.Text = board.StatusText;
-    }
+    void board_ReferenceShapeChanged(object sender, EventArgs e) => tbAddObservation.Enabled = board.ReferenceShape != null;
+    void board_StatusTextChanged(object sender, EventArgs e) => lblToolStatus.Text = board.StatusText;
 
     void board_ToolChanged(object sender, EventArgs e)
     {
@@ -266,12 +278,12 @@ namespace Maneubo
 
     void miAbout_Click(object sender, EventArgs e)
     {
-      using(AboutBox form = new AboutBox()) form.ShowDialog();
+      using(var form = new AboutBox()) form.ShowDialog();
     }
 
     void miAdvanceTime_Click(object sender, EventArgs e)
     {
-      using(AdvanceTimeForm form = new AdvanceTimeForm() { Time = lastTimeAdvance })
+      using(var form = new AdvanceTimeForm() { Time = lastTimeAdvance })
       {
         if(form.ShowDialog() == DialogResult.OK)
         {
@@ -281,14 +293,11 @@ namespace Maneubo
       }
     }
 
-    void miBackgroundImage_Click(object sender, EventArgs e)
-    {
-      SetBackgroundImage();
-    }
+    void miBackgroundImage_Click(object sender, EventArgs e) => SetBackgroundImage();
 
     void miBoardOptions_Click(object sender, EventArgs e)
     {
-      using(BoardOptionsForm form = new BoardOptionsForm(board))
+      using(var form = new BoardOptionsForm(board))
       {
         if(form.ShowDialog() == DialogResult.OK)
         {
@@ -308,40 +317,30 @@ namespace Maneubo
 
     void miContactShape_Click(object sender, EventArgs e)
     {
-      ToolStripMenuItem menuItem = (ToolStripMenuItem)sender;
+      var menuItem = (ToolStripMenuItem)sender;
       tbAddUnit.Image = menuItem.Image;
       foreach(ToolStripMenuItem item in tbUnitShape.DropDownItems) item.Checked = item == sender;
       board.AddUnitTool.Type = (UnitShapeType)menuItem.Tag;
       tbAddUnit.PerformClick();
     }
 
-    void miExit_Click(object sender, EventArgs e)
-    {
-      Close();
-    }
-
-    void miNew_Click(object sender, EventArgs e)
-    {
-      NewBoard();
-    }
+    void miExit_Click(object sender, EventArgs e) => Close();
+    void miNew_Click(object sender, EventArgs e) => NewBoard();
 
     void miObsType_Click(object sender, EventArgs e)
     {
-      ToolStripMenuItem menuItem = (ToolStripMenuItem)sender;
+      var menuItem = (ToolStripMenuItem)sender;
       tbAddObservation.Image = menuItem.Image;
       foreach(ToolStripMenuItem item in tbWaypointType.DropDownItems) item.Checked = item == sender;
       board.AddObservationTool.Type = (PositionalDataType)menuItem.Tag;
       tbAddObservation.PerformClick();
     }
 
-    void miOpen_Click(object sender, EventArgs e)
-    {
-      OpenBoard();
-    }
+    void miOpen_Click(object sender, EventArgs e) => OpenBoard();
 
     void miProgramOptions_Click(object sender, EventArgs e)
     {
-      using(ProgramOptionsForm form = new ProgramOptionsForm())
+      using(var form = new ProgramOptionsForm())
       {
         form.SaveTimeHotkey        = saveTimeKey;
         form.ToggleStopwatchHotkey = toggleStopwatchKey;
@@ -357,7 +356,7 @@ namespace Maneubo
             string configFile = Path.Combine(dataPath, "config.txt");
             try
             {
-              using(StreamWriter writer = new StreamWriter(configFile))
+              using(var writer = new StreamWriter(configFile))
               {
                 writer.WriteLine("saveTimeHotkey=" + saveTimeKey.ToStringInvariant());
                 writer.WriteLine("toggleStopwatchHotkey=" + toggleStopwatchKey.ToStringInvariant());
@@ -377,26 +376,15 @@ namespace Maneubo
     void miQuickInterceptTool_Click(object sender, EventArgs e)
     {
       UnitShape reference = board.ReferenceShape as UnitShape, selected = board.SelectedShape as UnitShape;
-      using(InterceptForm form = new InterceptForm(reference, selected, board.UnitSystem, false))
+      using(var form = new InterceptForm(reference, selected, board.UnitSystem, false))
       {
         if(form.ShowDialog() == DialogResult.OK && reference != null) board.ApplyIntercept(reference, form);
       }
     }
 
-    void miRemoveBackground_Click(object sender, EventArgs e)
-    {
-      board.BackgroundImage = null;
-    }
-
-    void miSave_Click(object sender, EventArgs e)
-    {
-      SaveBoard();
-    }
-
-    void miSaveAs_Click(object sender, EventArgs e)
-    {
-      SaveBoardAs();
-    }
+    void miRemoveBackground_Click(object sender, EventArgs e) => board.BackgroundImage = null;
+    void miSave_Click(object sender, EventArgs e) => SaveBoard();
+    void miSaveAs_Click(object sender, EventArgs e) => SaveBoardAs();
 
     void miStopwatch_Click(object sender, EventArgs e)
     {
@@ -412,50 +400,20 @@ namespace Maneubo
       else stopwatch.WindowState = FormWindowState.Normal;
     }
 
-    void tbAddObservation_Click(object sender, EventArgs e)
-    {
-      board.SelectedTool = board.AddObservationTool;
-    }
-
-    void tbAddUnit_Click(object sender, EventArgs e)
-    {
-      board.SelectedTool = board.AddUnitTool;
-    }
-
-    void tbCircle_Click(object sender, EventArgs e)
-    {
-      board.SelectedTool = board.AddCircleTool;
-    }
-
-    void tbIntercept_Click(object sender, EventArgs e)
-    {
-      board.SelectedTool = board.InterceptTool;
-    }
-
-    void tbLine_Click(object sender, EventArgs e)
-    {
-      board.SelectedTool = board.AddLineTool;
-    }
-
-    void tbPointer_Click(object sender, EventArgs e)
-    {
-      board.SelectedTool = board.PointerTool;
-    }
+    void tbAddObservation_Click(object sender, EventArgs e) => board.SelectedTool = board.AddObservationTool;
+    void tbAddUnit_Click(object sender, EventArgs e) => board.SelectedTool = board.AddUnitTool;
+    void tbCircle_Click(object sender, EventArgs e) => board.SelectedTool = board.AddCircleTool;
+    void tbIntercept_Click(object sender, EventArgs e) => board.SelectedTool = board.InterceptTool;
+    void tbLine_Click(object sender, EventArgs e) => board.SelectedTool = board.AddLineTool;
+    void tbPointer_Click(object sender, EventArgs e) => board.SelectedTool = board.PointerTool;
 
     void tbSetBackground_Click(object sender, EventArgs e)
     {
       if(board.BackgroundImage != null || SetBackgroundImage()) board.SelectedTool = board.SetupBackgroundTool;
     }
 
-    void tbSetProjection_Click(object sender, EventArgs e)
-    {
-      board.SelectedTool = board.SetupProjectionTool;
-    }
-
-    void tbTMA_Click(object sender, EventArgs e)
-    {
-      board.SelectedTool = board.TMATool;
-    }
+    void tbSetProjection_Click(object sender, EventArgs e) => board.SelectedTool = board.SetupProjectionTool;
+    void tbTMA_Click(object sender, EventArgs e) => board.SelectedTool = board.TMATool;
 
     StopwatchForm stopwatch;
     string fileName;
