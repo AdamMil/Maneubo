@@ -62,8 +62,14 @@ namespace Maneubo
 
     protected static bool TryParseAngle(string text, out double angle)
     {
-      if(!double.TryParse(text.Trim(), out angle)) return false;
+      Match m = angleRe.Match(text);
+      if(!m.Success)
+      {
+        angle = 0;
+        return false;
+      }
 
+      if(!double.TryParse(m.Groups["number"].Value, out angle)) return false;
       angle *= MathConst.DegreesToRadians;
       while(angle < 0) angle += Math.PI*2;
       while(angle >= Math.PI*2) angle -= Math.PI*2;
@@ -168,9 +174,10 @@ namespace Maneubo
       }
     }
 
-    static readonly Regex lengthRe = new Regex(@"^\s*(?<number>\d+|\d*[\.,]\d+)\s*(?<unit>ft|k(?:m|yd)|mi?|nmi?|yd)?\s*$",
+    static readonly Regex angleRe = new Regex(@"^\s*(?<number>\d+|\d*[\.,]\d+)\s*(°\s*)?$");
+    static readonly Regex lengthRe = new Regex(@"^\s*(?<number>\d+|\d*[\.,]\d+)\s*(?:(?<unit>ft|k(?:m|yd)|mi?|nmi?|yd)\s*)?$",
                                                RegexOptions.IgnoreCase);
-    static readonly Regex speedRe = new Regex(@"^\s*(?<number>\d+|\d*[\.,]\d+)\s*(?<unit>k(?:n|ph|ts?)|m(?:\/s|p[sh]))?\s*$",
+    static readonly Regex speedRe = new Regex(@"^\s*(?<number>\d+|\d*[\.,]\d+)\s*(?:(?<unit>k(?:n|ph|ts?)|m(?:\/s|p[sh]))\s*)?$",
                                               RegexOptions.IgnoreCase);
     static readonly Regex timeRe = new Regex(@"^\s*(?<rel>\+)?\s*(?<neg>-)?\s*(?:(?<minutes>\d*\.\d+)|(?<minutes>\d+)(?::(?<seconds>\d+))?|(?<hours>\d+):(?<minutes>\d+):(?<seconds>\d+))?\s*$",
                                              RegexOptions.IgnoreCase);

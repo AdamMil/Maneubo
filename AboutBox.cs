@@ -64,7 +64,7 @@ namespace Maneubo
       get
       {
         Version version = Assembly.GetExecutingAssembly().GetName().Version;
-        return string.Format(CultureInfo.InvariantCulture, "{0}.{1}", version.Major, version.Minor);
+        return string.Format(CultureInfo.InvariantCulture, "{0}.{1}.{2}", version.Major, version.Minor, version.Build);
       }
     }
     #endregion

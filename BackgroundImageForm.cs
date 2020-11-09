@@ -78,8 +78,8 @@ namespace Maneubo
         }
         catch(Exception ex)
         {
-          MessageBox.Show("An error occurred while reading data from the clipboard. (" + ex.Message + ") Try copying the data into the " +
-                          "clipboard again.", "Error reading clipboard", MessageBoxButtons.OK, MessageBoxIcon.Error);
+          MessageBox.Show("An error occurred while reading data from the clipboard. (" + ex.GetType().Name + " - " + ex.Message +
+            ") Try copying the data into the clipboard again.", "Error reading clipboard", MessageBoxButtons.OK, MessageBoxIcon.Error);
           return;
         }
       }
@@ -103,8 +103,8 @@ namespace Maneubo
         }
         catch(Exception ex)
         {
-          MessageBox.Show("An error occurred while reading " + file + ". (" + ex.Message + ")", "Error reading file", MessageBoxButtons.OK,
-                          MessageBoxIcon.Error);
+          MessageBox.Show("An error occurred while reading " + file + ". (" + ex.GetType().Name + " - " + ex.Message + ")",
+            "Error reading file", MessageBoxButtons.OK, MessageBoxIcon.Error);
           return;
         }
       }

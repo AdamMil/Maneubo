@@ -1898,9 +1898,19 @@ namespace Maneubo
       {
         // if the unit's implied waypoint would be lost, add a new waypoint at its current position
         Waypoint previous, waypoint = unit.GetApplicableWaypoint(TimeSpan.Zero, out previous, wantLine: true);
-        if(previous != null ? // if we have two waypoints...
-          Math.Abs(new Line2(previous.Position, waypoint.Position).DistanceTo(unit.Position)) > 1 : // ensure we're on the same line
-          waypoint != null && waypoint.Time == time) // otherwise, there's only one so ensure we're not moving on top of it
+        bool addWaypoint = false;
+        if(previous != null) // if there are two waypoints, make sure the unit isn't too far off the line
+        {
+          double wpDistance = previous.Position.DistanceTo(waypoint.Position);
+          double unitDistance = Math.Abs(new Line2(previous.Position, waypoint.Position).DistanceTo(unit.Position));
+          addWaypoint = unitDistance/wpDistance > 0.001;
+        }
+        else
+        {
+          addWaypoint = waypoint != null && waypoint.Time == time; // if there's only one waypoint, ensure we're not moving on top of it
+        }
+
+        if(addWaypoint)
         {
           int index = unit.Children.IndexOf(waypoint) +
             (waypoint.Time <= TimeSpan.Zero ? 1 : previous == null || previous.Time <= TimeSpan.Zero ? 0 : -1);
