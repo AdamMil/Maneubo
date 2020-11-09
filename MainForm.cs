@@ -256,7 +256,9 @@ namespace Maneubo
       if(board.SelectedTool == board.SetupBackgroundTool) board.SelectedTool = board.PointerTool;
     }
 
-    void board_ReferenceShapeChanged(object sender, EventArgs e) => tbAddObservation.Enabled = board.ReferenceShape != null;
+    void board_ReferenceShapeChanged(object sender, EventArgs e) =>
+      tbAddObservation.Enabled = board.ReferenceShape != null || board.AddObservationTool.Type == PositionalDataType.Waypoint;
+
     void board_StatusTextChanged(object sender, EventArgs e) => lblToolStatus.Text = board.StatusText;
 
     void board_ToolChanged(object sender, EventArgs e)
@@ -333,7 +335,9 @@ namespace Maneubo
       tbAddObservation.Image = menuItem.Image;
       foreach(ToolStripMenuItem item in tbWaypointType.DropDownItems) item.Checked = item == sender;
       board.AddObservationTool.Type = (PositionalDataType)menuItem.Tag;
-      tbAddObservation.PerformClick();
+      tbAddObservation.Enabled = board.ReferenceShape != null || board.AddObservationTool.Type == PositionalDataType.Waypoint;
+      if(tbAddObservation.Enabled) tbAddObservation.PerformClick();
+      else if(tbAddObservation.Checked) tbPointer.PerformClick();
     }
 
     void miOpen_Click(object sender, EventArgs e) => OpenBoard();

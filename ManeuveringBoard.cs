@@ -2797,7 +2797,11 @@ namespace Maneubo
 
     bool IsValidTool(Tool tool)
     {
-      if(ReferenceShape == null && tool == AddObservationTool || BackgroundImage == null && tool == SetupBackgroundTool) return false;
+      if(ReferenceShape == null && tool == AddObservationTool && AddObservationTool.Type != PositionalDataType.Waypoint ||
+         BackgroundImage == null && tool == SetupBackgroundTool)
+      {
+        return false;
+      }
       return true;
     }
 
